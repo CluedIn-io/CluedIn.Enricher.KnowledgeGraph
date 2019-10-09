@@ -50,6 +50,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Git", "Git", "{17EE3C8D-BAE
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExternalSearch.Providers.KnowledgeGraph", "src\ExternalSearch.Providers.KnowledgeGraph.csproj", "{FAAD6DC5-6B35-4D73-AD98-8D2C3D86FEA4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExternalSearch.KnowledgeGraph.Integration.Tests", "test\integration\ExternalSearch.KnowledgeGraph.Integration.Tests\ExternalSearch.KnowledgeGraph.Integration.Tests.csproj", "{E4418764-F1EF-40D3-AA8C-C2C6C38B6654}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -60,6 +62,10 @@ Global
 		{FAAD6DC5-6B35-4D73-AD98-8D2C3D86FEA4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FAAD6DC5-6B35-4D73-AD98-8D2C3D86FEA4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FAAD6DC5-6B35-4D73-AD98-8D2C3D86FEA4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E4418764-F1EF-40D3-AA8C-C2C6C38B6654}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E4418764-F1EF-40D3-AA8C-C2C6C38B6654}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E4418764-F1EF-40D3-AA8C-C2C6C38B6654}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E4418764-F1EF-40D3-AA8C-C2C6C38B6654}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -73,6 +79,7 @@ Global
 		{2C3AECCF-DCB5-4ED7-8B7B-8F373EDE3A5E} = {9BD54E81-D9C8-4419-82B8-8EE6CC7E2647}
 		{17EE3C8D-BAE4-481A-B9CC-1BE878E86124} = {9BD54E81-D9C8-4419-82B8-8EE6CC7E2647}
 		{FAAD6DC5-6B35-4D73-AD98-8D2C3D86FEA4} = {B2A52533-7FBF-41FE-A0AF-874FC54300B2}
+		{E4418764-F1EF-40D3-AA8C-C2C6C38B6654} = {DBD1964B-DBD9-4C70-96CA-391C34B3D75F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6A61CB42-80C5-4A83-AC3E-DA41FC875525}
