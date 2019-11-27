@@ -1430,9 +1430,9 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
                 metadata.Uri = uri;
         }
 
-        public string Icon { get; } = "Resources.cluedin.png";
-        public string Domain { get; } = "To be confirmed";
-        public string About { get; } = "A test Enricher used to work with known data during acceptance tests";
+        public string Icon { get; } = "Resources.knowledgegraph.jpg";
+        public string Domain { get; } = "https://developers.google.com/knowledge-graph";
+        public string About { get; } = "Knowledge Graph is enricher which allows you to find entities using Google Knowledge Graph API";
         public AuthMethods AuthMethods { get; } = null;
         public IEnumerable<Control> Properties { get; } = null;
         public Guide Guide { get; } = null;

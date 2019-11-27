@@ -24,12 +24,6 @@
     <None Remove="Backup\**" />
   </ItemGroup>
   <ItemGroup>
-    <None Remove="Resources\cluedin.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Resources\cluedin.png" />
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="CluedIn.ExternalSearch" Version="2.6.0-alpha0003" />
     <PackageReference Include="EntityFramework" Version="6.1.2" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
