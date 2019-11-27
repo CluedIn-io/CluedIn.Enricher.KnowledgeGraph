@@ -19,7 +19,18 @@
     <DebugType>pdbonly</DebugType>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CluedIn.ExternalSearch" Version="2.4.0-alpha0100" />
+    <Compile Remove="Backup\**" />
+    <EmbeddedResource Remove="Backup\**" />
+    <None Remove="Backup\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="Resources\cluedin.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\cluedin.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="CluedIn.ExternalSearch" Version="2.6.0-alpha0003" />
     <PackageReference Include="EntityFramework" Version="6.1.2" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
     <PackageReference Include="RestSharp" Version="105.2.3" />
@@ -30,8 +41,5 @@
     <Reference Include="System.Net" />
     <Reference Include="System.Web" />
     <Reference Include="Microsoft.CSharp" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Backup\" />
   </ItemGroup>
 </Project>
