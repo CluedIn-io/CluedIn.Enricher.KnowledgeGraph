@@ -20,13 +20,17 @@ using CluedIn.ExternalSearch.Providers.KnowledgeGraph.Model;
 using CluedIn.ExternalSearch.Providers.KnowledgeGraph.Vocabularies;
 using RestSharp;
 using System.Web;
+using CluedIn.Core.Data.Relational;
+using CluedIn.Core.ExternalSearch;
+using CluedIn.Core.Providers;
+using EntityType = CluedIn.Core.Data.EntityType;
 
 namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
 {
     /// <summary>The knowledge graph external search provider.</summary>
     /// <seealso cref="CluedIn.ExternalSearch.IExternalSearchResultLogger" />
     /// <seealso cref="CluedIn.ExternalSearch.ExternalSearchProviderBase" />
-    public partial class KnowledgeGraphExternalSearchProvider : ExternalSearchProviderBase, IExternalSearchResultLogger
+    public partial class KnowledgeGraphExternalSearchProvider : ExternalSearchProviderBase, IExternalSearchResultLogger, IExtendedEnricherMetadata
     {
         /**********************************************************************************************************
          * FIELDS
@@ -1425,5 +1429,13 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             if (resultItem.Data.url != null && Uri.TryCreate(resultItem.Data.url, UriKind.Absolute, out uri))
                 metadata.Uri = uri;
         }
+
+        public string Icon { get; } = "Resources.knowledgegraph.jpg";
+        public string Domain { get; } = "https://developers.google.com/knowledge-graph";
+        public string About { get; } = "Knowledge Graph is enricher which allows you to find entities using Google Knowledge Graph API";
+        public AuthMethods AuthMethods { get; } = null;
+        public IEnumerable<Control> Properties { get; } = null;
+        public Guide Guide { get; } = null;
+        public IntegrationType Type { get; } = IntegrationType.Cloud;
     }
 }
