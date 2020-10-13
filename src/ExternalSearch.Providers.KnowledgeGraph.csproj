@@ -1,5 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <None Remove="Resources\knowledgegraph.jpg" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\knowledgegraph.jpg" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="CluedIn.ExternalSearch" />
   </ItemGroup>
 </Project>
