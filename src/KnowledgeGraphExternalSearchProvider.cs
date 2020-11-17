@@ -1200,7 +1200,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             }
             .Select(t => t.ToLowerInvariant())
             .Distinct()
-            .ToHashSet();
+            .ToHashSetEx();
 
         /**********************************************************************************************************
          * CONSTRUCTORS
@@ -1248,7 +1248,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             {
                 var values = organizationName.GetOrganizationNameVariants()
                                              .Select(NameNormalization.Normalize)
-                                             .ToHashSet();
+                                             .ToHashSetEx();
 
                 foreach (var value in values.Where(v => !nameFilter(v)))
                     yield return new ExternalSearchQuery(this, entityType, ExternalSearchQueryParameter.Name, value);
@@ -1279,7 +1279,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             name = HttpUtility.UrlEncode(name);
 
             var client = new RestClient("https://kgsearch.googleapis.com");
-           
+
             var request = new RestRequest(string.Format("v1/entities:search?query={0}&key={1}&limit=10&indent=True", name ?? uri, "AIzaSyA_jYkIzEp_8w90K70KQYuoKLrLuOf1wZA"), Method.GET);
 
             var response = client.ExecuteTaskAsync<KnowledgeResponse>(request).Result;
