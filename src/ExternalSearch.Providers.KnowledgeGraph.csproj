@@ -1,9 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <None Remove="Resources\knowledgegraph.jpg" />
+    <None Remove="Resources\knowledge_graph.svg" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Resources\knowledgegraph.jpg" />
+    <EmbeddedResource Include="Resources\knowledge_graph.svg" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CluedIn.ExternalSearch" />
