@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup Label="Dependency Versions">
     <_AutoFixture>4.11.0</_AutoFixture>
-    <_CluedIn>3.3.0-*</_CluedIn>
+        <_CluedIn>3.3.0-alpha*</_CluedIn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -32,6 +32,8 @@
     -->
     <PackageReference Update="CluedIn.Core" Version="$(_CluedIn)" />
     <PackageReference Update="CluedIn.ExternalSearch" Version="$(_CluedIn)" />
+        <PackageReference Update="CluedIn.Crawling.Acceptance" Version="$(_CluedIn)" />
+        <PackageReference Update="ComponentHost" Version="2.0.0" />
 
   </ItemGroup>
 
