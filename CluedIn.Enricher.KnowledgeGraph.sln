@@ -52,7 +52,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExternalSearch.KnowledgeGra
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExternalSearch.Providers.KnowledgeGraph", "src\ExternalSearch.Providers.KnowledgeGraph\ExternalSearch.Providers.KnowledgeGraph.csproj", "{AC2E917B-214A-4BB1-8FAB-3116A89AD94C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExternalSearch.Providers.KnowledgeGraph.Provider", "src\ExternalSearch.Providers.KnowledgeGraph.Provider\ExternalSearch.Providers.KnowledgeGraph.Provider.csproj", "{3127354F-F2CA-4384-956D-2539C01422A9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Provider.ExternalSearch.KnowledgeGraph", "src\ExternalSearch.Providers.KnowledgeGraph.Provider\Provider.ExternalSearch.KnowledgeGraph.csproj", "{3127354F-F2CA-4384-956D-2539C01422A9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
