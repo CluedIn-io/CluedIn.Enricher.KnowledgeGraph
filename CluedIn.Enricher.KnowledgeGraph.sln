@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.28803.452
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.32014.148
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{B2A52533-7FBF-41FE-A0AF-874FC54300B2}"
 	ProjectSection(SolutionItems) = preProject
@@ -21,9 +21,9 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{E1A76004-11EB-44E0-B1D2-B197689E9265}"
 	ProjectSection(SolutionItems) = preProject
 		azure-pipelines.yml = azure-pipelines.yml
-		global.json = global.json
 		Directory.Build.props = Directory.Build.props
 		Directory.Build.targets = Directory.Build.targets
+		global.json = global.json
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{9BD54E81-D9C8-4419-82B8-8EE6CC7E2647}"
@@ -48,9 +48,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Git", "Git", "{17EE3C8D-BAE
 		.gitignore = .gitignore
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExternalSearch.Providers.KnowledgeGraph", "src\ExternalSearch.Providers.KnowledgeGraph.csproj", "{FAAD6DC5-6B35-4D73-AD98-8D2C3D86FEA4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExternalSearch.KnowledgeGraph.Integration.Tests", "test\integration\ExternalSearch.KnowledgeGraph.Integration.Tests\ExternalSearch.KnowledgeGraph.Integration.Tests.csproj", "{E4418764-F1EF-40D3-AA8C-C2C6C38B6654}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExternalSearch.KnowledgeGraph.Integration.Tests", "test\integration\ExternalSearch.KnowledgeGraph.Integration.Tests\ExternalSearch.KnowledgeGraph.Integration.Tests.csproj", "{E4418764-F1EF-40D3-AA8C-C2C6C38B6654}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExternalSearch.Providers.KnowledgeGraph", "src\ExternalSearch.Providers.KnowledgeGraph\ExternalSearch.Providers.KnowledgeGraph.csproj", "{AC2E917B-214A-4BB1-8FAB-3116A89AD94C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Provider.ExternalSearch.KnowledgeGraph", "src\ExternalSearch.Providers.KnowledgeGraph.Provider\Provider.ExternalSearch.KnowledgeGraph.csproj", "{3127354F-F2CA-4384-956D-2539C01422A9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -58,14 +60,18 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{FAAD6DC5-6B35-4D73-AD98-8D2C3D86FEA4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{FAAD6DC5-6B35-4D73-AD98-8D2C3D86FEA4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{FAAD6DC5-6B35-4D73-AD98-8D2C3D86FEA4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{FAAD6DC5-6B35-4D73-AD98-8D2C3D86FEA4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E4418764-F1EF-40D3-AA8C-C2C6C38B6654}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E4418764-F1EF-40D3-AA8C-C2C6C38B6654}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E4418764-F1EF-40D3-AA8C-C2C6C38B6654}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E4418764-F1EF-40D3-AA8C-C2C6C38B6654}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AC2E917B-214A-4BB1-8FAB-3116A89AD94C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AC2E917B-214A-4BB1-8FAB-3116A89AD94C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AC2E917B-214A-4BB1-8FAB-3116A89AD94C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AC2E917B-214A-4BB1-8FAB-3116A89AD94C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3127354F-F2CA-4384-956D-2539C01422A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3127354F-F2CA-4384-956D-2539C01422A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3127354F-F2CA-4384-956D-2539C01422A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3127354F-F2CA-4384-956D-2539C01422A9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -78,8 +84,9 @@ Global
 		{02641789-0D38-4DBB-9288-23592CF55D25} = {9BD54E81-D9C8-4419-82B8-8EE6CC7E2647}
 		{2C3AECCF-DCB5-4ED7-8B7B-8F373EDE3A5E} = {9BD54E81-D9C8-4419-82B8-8EE6CC7E2647}
 		{17EE3C8D-BAE4-481A-B9CC-1BE878E86124} = {9BD54E81-D9C8-4419-82B8-8EE6CC7E2647}
-		{FAAD6DC5-6B35-4D73-AD98-8D2C3D86FEA4} = {B2A52533-7FBF-41FE-A0AF-874FC54300B2}
 		{E4418764-F1EF-40D3-AA8C-C2C6C38B6654} = {DBD1964B-DBD9-4C70-96CA-391C34B3D75F}
+		{AC2E917B-214A-4BB1-8FAB-3116A89AD94C} = {B2A52533-7FBF-41FE-A0AF-874FC54300B2}
+		{3127354F-F2CA-4384-956D-2539C01422A9} = {B2A52533-7FBF-41FE-A0AF-874FC54300B2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6A61CB42-80C5-4A83-AC3E-DA41FC875525}
