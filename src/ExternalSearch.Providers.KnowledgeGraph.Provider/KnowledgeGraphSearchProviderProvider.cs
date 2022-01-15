@@ -44,7 +44,7 @@ namespace CluedIn.Provider.KnowledgeGraph
             if (configuration == null)
                 throw new ArgumentNullException(nameof(configuration));
 
-            var result = new CrawlJobData();
+            var result = new KnowledgeGraphExternalSearchJobData(configuration);
 
             return await Task.FromResult(result);
         }
