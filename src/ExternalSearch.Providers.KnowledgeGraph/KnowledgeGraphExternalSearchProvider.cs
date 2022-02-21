@@ -30,8 +30,10 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
     /// <summary>The knowledge graph external search provider.</summary>
     /// <seealso cref="CluedIn.ExternalSearch.IExternalSearchResultLogger" />
     /// <seealso cref="CluedIn.ExternalSearch.ExternalSearchProviderBase" />
-    public partial class KnowledgeGraphExternalSearchProvider : ExternalSearchProviderBase, IExternalSearchResultLogger, IExtendedEnricherMetadata
+    public partial class KnowledgeGraphExternalSearchProvider : ExternalSearchProviderBase, IExternalSearchResultLogger, IExtendedEnricherMetadata, IConfigurableExternalSearchProvider
     {
+        private static readonly EntityType[] AcceptedEntityTypes = { EntityType.Organization };
+
         /**********************************************************************************************************
          * FIELDS
          **********************************************************************************************************/
@@ -1210,7 +1212,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         /// Initializes a new instance of the <see cref="KnowledgeGraphExternalSearchProvider" /> class.
         /// </summary>
         public KnowledgeGraphExternalSearchProvider()
-            : base(Constants.ExternalSearchProviders.GoogleKnowledgeGraphId, EntityType.Organization)
+            : base(Core.Constants.ExternalSearchProviders.GoogleKnowledgeGraphId, AcceptedEntityTypes)
         {
         }
 
@@ -1430,12 +1432,43 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
                 metadata.Uri = uri;
         }
 
-        public string Icon { get; } = "Resources.knowledgegraph.jpg";
-        public string Domain { get; } = "https://developers.google.com/knowledge-graph";
-        public string About { get; } = "Knowledge Graph is an enricher which allows you to find entities using the Google Knowledge Graph API";
-        public AuthMethods AuthMethods { get; } = null;
-        public IEnumerable<Control> Properties { get; } = null;
-        public Guide Guide { get; } = null;
-        public IntegrationType Type { get; } = IntegrationType.Cloud;
+        public IEnumerable<EntityType> Accepts(IDictionary<string, object> config, IProvider provider)
+        {
+            return AcceptedEntityTypes;
+        }
+
+        public IEnumerable<IExternalSearchQuery> BuildQueries(ExecutionContext context, IExternalSearchRequest request, IDictionary<string, object> config, IProvider provider)
+        {
+            return BuildQueries(context, request);
+        }
+
+        public IEnumerable<IExternalSearchQueryResult> ExecuteSearch(ExecutionContext context, IExternalSearchQuery query, IDictionary<string, object> config, IProvider provider)
+        {
+            return ExecuteSearch(context, query);
+        }
+
+        public IEnumerable<Clue> BuildClues(ExecutionContext context, IExternalSearchQuery query, IExternalSearchQueryResult result, IExternalSearchRequest request, IDictionary<string, object> config, IProvider provider)
+        {
+            return BuildClues(context, query, result, request);
+        }
+
+        public IEntityMetadata GetPrimaryEntityMetadata(ExecutionContext context, IExternalSearchQueryResult result, IExternalSearchRequest request, IDictionary<string, object> config, IProvider provider)
+        {
+            return GetPrimaryEntityMetadata(context, result, request);
+        }
+
+        public IPreviewImage GetPrimaryEntityPreviewImage(ExecutionContext context, IExternalSearchQueryResult result, IExternalSearchRequest request, IDictionary<string, object> config, IProvider provider)
+        {
+            return GetPrimaryEntityPreviewImage(context, result, request);
+        }
+
+        public string Icon { get; } = Constants.Icon;
+        public string Domain { get; } = Constants.Domain;
+        public string About { get; } = Constants.About;
+
+        public AuthMethods AuthMethods { get; } = Constants.AuthMethods;
+        public IEnumerable<Control> Properties { get; } = Constants.Properties;
+        public Guide Guide { get; } = Constants.Guide;
+        public IntegrationType Type { get; } = Constants.IntegrationType;
     }
 }
