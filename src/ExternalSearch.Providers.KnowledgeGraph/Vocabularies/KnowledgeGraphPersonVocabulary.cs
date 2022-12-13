@@ -30,7 +30,6 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph.Vocabularies
             this.ImageUrl = this.Add(new VocabularyKey("domain", VocabularyKeyDataType.Uri));
             this.Description = this.Add(new VocabularyKey("description", VocabularyKeyDataType.Text));
 
-            this.AddMapping(this.GooglePlusId, CluedIn.Core.Data.Vocabularies.Vocabularies.CluedInUser.SocialGooglePlus);
         }
 
         public VocabularyKey GooglePlusId { get; protected set; }
