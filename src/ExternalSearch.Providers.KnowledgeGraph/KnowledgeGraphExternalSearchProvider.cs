@@ -24,6 +24,7 @@ using CluedIn.Core.Data.Relational;
 using CluedIn.Core.ExternalSearch;
 using CluedIn.Core.Providers;
 using EntityType = CluedIn.Core.Data.EntityType;
+using CluedIn.Core.Data.Vocabularies;
 
 namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
 {
@@ -1226,7 +1227,21 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         /// <returns>The search queries.</returns>
         public override IEnumerable<IExternalSearchQuery> BuildQueries(ExecutionContext context, IExternalSearchRequest request)
         {
-            if (!this.Accepts(request.EntityMetaData.EntityType))
+            foreach (var externalSearchQuery in InternalBuildQueries(context, request))
+            {
+                yield return externalSearchQuery;
+            }
+        }
+        private IEnumerable<IExternalSearchQuery> InternalBuildQueries(ExecutionContext context, IExternalSearchRequest request, IDictionary<string, object> config = null)
+        {
+            if (config.TryGetValue(Constants.KeyName.AcceptedEntityType, out var customType) && !string.IsNullOrWhiteSpace(customType?.ToString()))
+            {
+                if (!request.EntityMetaData.EntityType.Is(customType.ToString()))
+                {
+                    yield break;
+                }
+            }
+            else if (!this.Accepts(request.EntityMetaData.EntityType))
                 yield break;
 
             var existingResults = request.GetQueryResults<Result>(this).ToList();
@@ -1236,8 +1251,10 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
 
             // Query Input
             var entityType          = request.EntityMetaData.EntityType;
-            var organizationName    = request.QueryParameters.GetValue(CluedIn.Core.Data.Vocabularies.Vocabularies.CluedInOrganization.OrganizationName, new HashSet<string>());
-            var website             = request.QueryParameters.GetValue(CluedIn.Core.Data.Vocabularies.Vocabularies.CluedInOrganization.Website, new HashSet<string>());
+
+            var organizationName = GetValue(request, config, Constants.KeyName.OrganizationNameKey, Core.Data.Vocabularies.Vocabularies.CluedInOrganization.OrganizationName);
+            var website = GetValue(request, config, Constants.KeyName.WebsiteKey, Core.Data.Vocabularies.Vocabularies.CluedInOrganization.Website);
+
 
             if (!string.IsNullOrEmpty(request.EntityMetaData.Name))
                 organizationName.Add(request.EntityMetaData.Name);
@@ -1264,6 +1281,21 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
                 foreach (var value in values.Where(v => !urlFilter(v)))
                     yield return new ExternalSearchQuery(this, entityType, ExternalSearchQueryParameter.Uri, value);
             }
+        }
+
+        private static HashSet<string> GetValue(IExternalSearchRequest request, IDictionary<string, object> config, string keyName, VocabularyKey defaultKey)
+        {
+            HashSet<string> value;
+            if (config.TryGetValue(keyName, out var customVocabKey) && !string.IsNullOrWhiteSpace(customVocabKey?.ToString()))
+            {
+                value = request.QueryParameters.GetValue<string, HashSet<string>>(customVocabKey.ToString(), new HashSet<string>());
+            }
+            else
+            {
+                value = request.QueryParameters.GetValue(defaultKey, new HashSet<string>());
+            }
+
+            return value;
         }
 
         /// <summary>Executes the search.</summary>
@@ -1439,7 +1471,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
 
         public IEnumerable<IExternalSearchQuery> BuildQueries(ExecutionContext context, IExternalSearchRequest request, IDictionary<string, object> config, IProvider provider)
         {
-            return BuildQueries(context, request);
+            return InternalBuildQueries(context, request, config);
         }
 
         public IEnumerable<IExternalSearchQueryResult> ExecuteSearch(ExecutionContext context, IExternalSearchQuery query, IDictionary<string, object> config, IProvider provider)
