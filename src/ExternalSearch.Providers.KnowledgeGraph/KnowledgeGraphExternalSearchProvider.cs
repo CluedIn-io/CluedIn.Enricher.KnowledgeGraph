@@ -1349,12 +1349,12 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             if (this.IsFiltered(resultItem.Data))
                 yield break;
 
-            var code = this.GetOriginEntityCode(resultItem);
+            var code = this.GetOriginEntityCode(resultItem, request);
 
             var clue = new Clue(code, context.Organization);
             clue.Data.OriginProviderDefinitionId = this.Id;
 
-            this.PopulateMetadata(clue.Data.EntityData, resultItem);
+            this.PopulateMetadata(clue.Data.EntityData, resultItem, request);
 
             yield return clue;
         }
@@ -1371,7 +1371,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             if (this.IsFiltered(resultItem.Data))
                 return null;
 
-            return this.CreateMetadata(resultItem);
+            return this.CreateMetadata(resultItem, request);
         }
 
         /// <summary>Gets the preview image.</summary>
@@ -1408,11 +1408,11 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         /// <summary>Creates the metadata.</summary>
         /// <param name="resultItem">The result item.</param>
         /// <returns>The metadata.</returns>
-        private IEntityMetadata CreateMetadata(IExternalSearchQueryResult<Result> resultItem)
+        private IEntityMetadata CreateMetadata(IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
         {
             var metadata = new EntityMetadataPart();
 
-            this.PopulateMetadata(metadata, resultItem);
+            this.PopulateMetadata(metadata, resultItem, request);
 
             return metadata;
         }
@@ -1420,9 +1420,9 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         /// <summary>Gets the origin entity code.</summary>
         /// <param name="resultItem">The result item.</param>
         /// <returns>The origin entity code.</returns>
-        private EntityCode GetOriginEntityCode(IExternalSearchQueryResult<Result> resultItem)
+        private EntityCode GetOriginEntityCode(IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
         {
-            return new EntityCode(EntityType.Organization, this.GetCodeOrigin(), resultItem.Data.id ?? resultItem.Data.name);
+            return new EntityCode(request.EntityMetaData.EntityType, this.GetCodeOrigin(), request.EntityMetaData.OriginEntityCode.Value);
         }
 
         /// <summary>Gets the code origin.</summary>
@@ -1435,13 +1435,14 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         /// <summary>Populates the metadata.</summary>
         /// <param name="metadata">The metadata.</param>
         /// <param name="resultItem">The result item.</param>
-        private void PopulateMetadata(IEntityMetadata metadata, IExternalSearchQueryResult<Result> resultItem)
+        private void PopulateMetadata(IEntityMetadata metadata, IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
         {
-            var code = this.GetOriginEntityCode(resultItem);
+            var code = this.GetOriginEntityCode(resultItem, request);
 
-            metadata.EntityType         = EntityType.Organization;
-            metadata.Name               = resultItem.Data.name;
+            metadata.EntityType         = request.EntityMetaData.EntityType;
+            metadata.Name               = request.EntityMetaData.Name;
             metadata.OriginEntityCode   = code;
+            metadata.Codes.Add(code);
 
             metadata.Description        = resultItem.Data.detailedDescription.PrintIfAvailable(v => v.articleBody) ?? resultItem.Data.description;
 
