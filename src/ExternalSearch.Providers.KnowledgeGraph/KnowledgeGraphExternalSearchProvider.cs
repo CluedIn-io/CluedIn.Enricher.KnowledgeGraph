@@ -1325,7 +1325,10 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
                     var elements = response.Data.itemListElement.Where(r => r.result != null && (r.result.id != null || r.result.name != null));
 
                     foreach (var result in elements)
+                    {
                         yield return new ExternalSearchQueryResult<Result>(query, result.result);
+                        yield break;
+                    }
                 }
             }
             else if (response.StatusCode == HttpStatusCode.NoContent || response.StatusCode == HttpStatusCode.NotFound)
