@@ -1263,15 +1263,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
 
             website.AddRange(website.ToList().GetDomainNamesFromUris());
 
-            if (organizationName != null)
-            {
-                var values = organizationName.GetOrganizationNameVariants()
-                                             .Select(NameNormalization.Normalize)
-                                             .ToHashSetEx();
 
-                foreach (var value in values.Where(v => !nameFilter(v)))
-                    yield return new ExternalSearchQuery(this, entityType, ExternalSearchQueryParameter.Name, value);
-            }
 
             if (website != null)
             {
