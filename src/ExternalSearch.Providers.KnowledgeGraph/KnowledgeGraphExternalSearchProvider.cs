@@ -1202,7 +1202,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             }
             .Select(t => t.ToLowerInvariant())
             .Distinct()
-            .ToHashSetEx();
+            .ToHashSet();
 
         /**********************************************************************************************************
          * CONSTRUCTORS
@@ -1250,7 +1250,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             {
                 var values = organizationName.GetOrganizationNameVariants()
                                              .Select(NameNormalization.Normalize)
-                                             .ToHashSetEx();
+                                             .ToHashSet();
 
                 foreach (var value in values.Where(v => !nameFilter(v)))
                     yield return new ExternalSearchQuery(this, entityType, ExternalSearchQueryParameter.Name, value);
