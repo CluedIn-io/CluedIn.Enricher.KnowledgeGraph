@@ -1203,7 +1203,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             }
             .Select(t => t.ToLowerInvariant())
             .Distinct()
-            .ToHashSetEx();
+            .ToHashSet();
 
         /**********************************************************************************************************
          * CONSTRUCTORS
