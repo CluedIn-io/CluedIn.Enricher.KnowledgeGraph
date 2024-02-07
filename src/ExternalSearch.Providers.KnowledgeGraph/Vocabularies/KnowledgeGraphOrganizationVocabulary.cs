@@ -32,7 +32,6 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph.Vocabularies
             this.DetailedDescriptionLicense     = this.Add(new VocabularyKey("detailedDescriptionLicense"));
             this.DetailedDescriptionUrl         = this.Add(new VocabularyKey("detailedDescriptionUrl"));
 
-            this.AddMapping(this.Url, CluedIn.Core.Data.Vocabularies.Vocabularies.CluedInOrganization.Website);
         }
 
         public VocabularyKey Url { get; protected set; }

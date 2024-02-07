@@ -24,6 +24,7 @@ using CluedIn.Core.Data.Relational;
 using CluedIn.Core.ExternalSearch;
 using CluedIn.Core.Providers;
 using EntityType = CluedIn.Core.Data.EntityType;
+using CluedIn.Core.Data.Vocabularies;
 
 namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
 {
@@ -1202,7 +1203,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             }
             .Select(t => t.ToLowerInvariant())
             .Distinct()
-            .ToHashSetEx();
+            .ToHashSet();
 
         /**********************************************************************************************************
          * CONSTRUCTORS
@@ -1226,7 +1227,21 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         /// <returns>The search queries.</returns>
         public override IEnumerable<IExternalSearchQuery> BuildQueries(ExecutionContext context, IExternalSearchRequest request)
         {
-            if (!this.Accepts(request.EntityMetaData.EntityType))
+            foreach (var externalSearchQuery in InternalBuildQueries(context, request))
+            {
+                yield return externalSearchQuery;
+            }
+        }
+        private IEnumerable<IExternalSearchQuery> InternalBuildQueries(ExecutionContext context, IExternalSearchRequest request, IDictionary<string, object> config = null)
+        {
+            if (config.TryGetValue(Constants.KeyName.AcceptedEntityType, out var customType) && !string.IsNullOrWhiteSpace(customType?.ToString()))
+            {
+                if (!request.EntityMetaData.EntityType.Is(customType.ToString()))
+                {
+                    yield break;
+                }
+            }
+            else if (!this.Accepts(request.EntityMetaData.EntityType))
                 yield break;
 
             var existingResults = request.GetQueryResults<Result>(this).ToList();
@@ -1236,8 +1251,10 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
 
             // Query Input
             var entityType          = request.EntityMetaData.EntityType;
-            var organizationName    = request.QueryParameters.GetValue(CluedIn.Core.Data.Vocabularies.Vocabularies.CluedInOrganization.OrganizationName, new HashSet<string>());
-            var website             = request.QueryParameters.GetValue(CluedIn.Core.Data.Vocabularies.Vocabularies.CluedInOrganization.Website, new HashSet<string>());
+
+            var organizationName = GetValue(request, config, Constants.KeyName.OrganizationNameKey, Core.Data.Vocabularies.Vocabularies.CluedInOrganization.OrganizationName);
+            var website = GetValue(request, config, Constants.KeyName.WebsiteKey, Core.Data.Vocabularies.Vocabularies.CluedInOrganization.Website);
+
 
             if (!string.IsNullOrEmpty(request.EntityMetaData.Name))
                 organizationName.Add(request.EntityMetaData.Name);
@@ -1246,15 +1263,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
 
             website.AddRange(website.ToList().GetDomainNamesFromUris());
 
-            if (organizationName != null)
-            {
-                var values = organizationName.GetOrganizationNameVariants()
-                                             .Select(NameNormalization.Normalize)
-                                             .ToHashSetEx();
 
-                foreach (var value in values.Where(v => !nameFilter(v)))
-                    yield return new ExternalSearchQuery(this, entityType, ExternalSearchQueryParameter.Name, value);
-            }
 
             if (website != null)
             {
@@ -1264,6 +1273,21 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
                 foreach (var value in values.Where(v => !urlFilter(v)))
                     yield return new ExternalSearchQuery(this, entityType, ExternalSearchQueryParameter.Uri, value);
             }
+        }
+
+        private static HashSet<string> GetValue(IExternalSearchRequest request, IDictionary<string, object> config, string keyName, VocabularyKey defaultKey)
+        {
+            HashSet<string> value;
+            if (config.TryGetValue(keyName, out var customVocabKey) && !string.IsNullOrWhiteSpace(customVocabKey?.ToString()))
+            {
+                value = request.QueryParameters.GetValue<string, HashSet<string>>(customVocabKey.ToString(), new HashSet<string>());
+            }
+            else
+            {
+                value = request.QueryParameters.GetValue(defaultKey, new HashSet<string>());
+            }
+
+            return value;
         }
 
         /// <summary>Executes the search.</summary>
@@ -1293,7 +1317,10 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
                     var elements = response.Data.itemListElement.Where(r => r.result != null && (r.result.id != null || r.result.name != null));
 
                     foreach (var result in elements)
+                    {
                         yield return new ExternalSearchQueryResult<Result>(query, result.result);
+                        yield break;
+                    }
                 }
             }
             else if (response.StatusCode == HttpStatusCode.NoContent || response.StatusCode == HttpStatusCode.NotFound)
@@ -1317,12 +1344,12 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             if (this.IsFiltered(resultItem.Data))
                 yield break;
 
-            var code = this.GetOriginEntityCode(resultItem);
+            var code = this.GetOriginEntityCode(resultItem, request);
 
             var clue = new Clue(code, context.Organization);
             clue.Data.OriginProviderDefinitionId = this.Id;
 
-            this.PopulateMetadata(clue.Data.EntityData, resultItem);
+            this.PopulateMetadata(clue.Data.EntityData, resultItem, request);
 
             yield return clue;
         }
@@ -1339,7 +1366,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             if (this.IsFiltered(resultItem.Data))
                 return null;
 
-            return this.CreateMetadata(resultItem);
+            return this.CreateMetadata(resultItem, request);
         }
 
         /// <summary>Gets the preview image.</summary>
@@ -1376,11 +1403,11 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         /// <summary>Creates the metadata.</summary>
         /// <param name="resultItem">The result item.</param>
         /// <returns>The metadata.</returns>
-        private IEntityMetadata CreateMetadata(IExternalSearchQueryResult<Result> resultItem)
+        private IEntityMetadata CreateMetadata(IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
         {
             var metadata = new EntityMetadataPart();
 
-            this.PopulateMetadata(metadata, resultItem);
+            this.PopulateMetadata(metadata, resultItem, request);
 
             return metadata;
         }
@@ -1388,9 +1415,9 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         /// <summary>Gets the origin entity code.</summary>
         /// <param name="resultItem">The result item.</param>
         /// <returns>The origin entity code.</returns>
-        private EntityCode GetOriginEntityCode(IExternalSearchQueryResult<Result> resultItem)
+        private EntityCode GetOriginEntityCode(IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
         {
-            return new EntityCode(EntityType.Organization, this.GetCodeOrigin(), resultItem.Data.id ?? resultItem.Data.name);
+            return new EntityCode(request.EntityMetaData.EntityType, this.GetCodeOrigin(), request.EntityMetaData.OriginEntityCode.Value);
         }
 
         /// <summary>Gets the code origin.</summary>
@@ -1403,13 +1430,14 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         /// <summary>Populates the metadata.</summary>
         /// <param name="metadata">The metadata.</param>
         /// <param name="resultItem">The result item.</param>
-        private void PopulateMetadata(IEntityMetadata metadata, IExternalSearchQueryResult<Result> resultItem)
+        private void PopulateMetadata(IEntityMetadata metadata, IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
         {
-            var code = this.GetOriginEntityCode(resultItem);
+            var code = this.GetOriginEntityCode(resultItem, request);
 
-            metadata.EntityType         = EntityType.Organization;
-            metadata.Name               = resultItem.Data.name;
+            metadata.EntityType         = request.EntityMetaData.EntityType;
+            metadata.Name               = request.EntityMetaData.Name;
             metadata.OriginEntityCode   = code;
+            metadata.Codes.Add(code);
 
             metadata.Description        = resultItem.Data.detailedDescription.PrintIfAvailable(v => v.articleBody) ?? resultItem.Data.description;
 
@@ -1439,7 +1467,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
 
         public IEnumerable<IExternalSearchQuery> BuildQueries(ExecutionContext context, IExternalSearchRequest request, IDictionary<string, object> config, IProvider provider)
         {
-            return BuildQueries(context, request);
+            return InternalBuildQueries(context, request, config);
         }
 
         public IEnumerable<IExternalSearchQueryResult> ExecuteSearch(ExecutionContext context, IExternalSearchQuery query, IDictionary<string, object> config, IProvider provider)
