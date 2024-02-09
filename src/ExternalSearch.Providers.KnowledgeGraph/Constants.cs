@@ -10,7 +10,12 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         public const string ComponentName = "KnowledgeGraph";
         public const string ProviderName = "Knowledge Graph";
         public static readonly Guid ProviderId = Core.Constants.ExternalSearchProviders.GoogleKnowledgeGraphId;
-
+        public struct KeyName
+        {
+            public const string AcceptedEntityType = "acceptedEntityType";
+            public const string OrganizationNameKey = "organizationNameKey";
+            public const string WebsiteKey = "websiteKey";
+        }
         public static string About { get; set; } = "Knowledge Graph is an enricher which allows you to find entities using the Google Knowledge Graph API";
         public static string Icon { get; set; } = "Resources.knowledge_graph.svg";
         public static string Domain { get; set; } = "https://developers.google.com/knowledge-graph";
@@ -19,7 +24,27 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         {
             token = new List<Control>()
             {
-                
+                new Control()
+                {
+                    displayName = "Accepted Entity Type",
+                    type = "input",
+                    isRequired = false,
+                    name = KeyName.AcceptedEntityType
+                },
+                new Control()
+                {
+                    displayName = "Organization Name vocab key",
+                    type = "input",
+                    isRequired = false,
+                    name = KeyName.OrganizationNameKey
+                },
+                new Control()
+                {
+                    displayName = "Website vocab key",
+                    type = "input",
+                    isRequired = false,
+                    name = KeyName.WebsiteKey
+                }
             }
         };
 
