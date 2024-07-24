@@ -33,7 +33,11 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
     /// <seealso cref="CluedIn.ExternalSearch.ExternalSearchProviderBase" />
     public partial class KnowledgeGraphExternalSearchProvider : ExternalSearchProviderBase, IExternalSearchResultLogger, IExtendedEnricherMetadata, IConfigurableExternalSearchProvider
     {
-        private static readonly EntityType[] AcceptedEntityTypes = { EntityType.Organization };
+        /**********************************************************************************************************
+         * FIELDS
+         **********************************************************************************************************/
+
+        private static readonly EntityType[] DefaultAcceptedEntityTypes = { EntityType.Organization };
 
         /**********************************************************************************************************
          * FIELDS
@@ -1209,17 +1213,38 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
          * CONSTRUCTORS
          **********************************************************************************************************/
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="KnowledgeGraphExternalSearchProvider" /> class.
-        /// </summary>
         public KnowledgeGraphExternalSearchProvider()
-            : base(Core.Constants.ExternalSearchProviders.GoogleKnowledgeGraphId, AcceptedEntityTypes)
+            : base(Core.Constants.ExternalSearchProviders.GoogleKnowledgeGraphId, DefaultAcceptedEntityTypes)
         {
         }
 
         /**********************************************************************************************************
          * METHODS
          **********************************************************************************************************/
+
+        public IEnumerable<EntityType> Accepts(IDictionary<string, object> config, IProvider provider) => this.Accepts(config);
+
+        private IEnumerable<EntityType> Accepts(IDictionary<string, object> config)
+            => Accepts(new KnowledgeGraphExternalSearchJobData(config));
+
+        private IEnumerable<EntityType> Accepts(KnowledgeGraphExternalSearchJobData config)
+        {
+            if (!string.IsNullOrWhiteSpace(config.AcceptedEntityType))
+            {
+                // If configured, only accept the configured entity types
+                return new EntityType[] { config.AcceptedEntityType };
+            }
+
+            // Fallback to default accepted entity types
+            return DefaultAcceptedEntityTypes;
+        }
+
+        private bool Accepts(KnowledgeGraphExternalSearchJobData config, EntityType entityTypeToEvaluate)
+        {
+            var configurableAcceptedEntityTypes = this.Accepts(config).ToArray();
+
+            return configurableAcceptedEntityTypes.Any(entityTypeToEvaluate.Is);
+        }
 
         /// <summary>Builds the queries.</summary>
         /// <param name="context">The context.</param>
@@ -1232,16 +1257,9 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
                 yield return externalSearchQuery;
             }
         }
-        private IEnumerable<IExternalSearchQuery> InternalBuildQueries(ExecutionContext context, IExternalSearchRequest request, IDictionary<string, object> config = null)
+        private IEnumerable<IExternalSearchQuery> InternalBuildQueries(ExecutionContext context, IExternalSearchRequest request, KnowledgeGraphExternalSearchJobData config = null)
         {
-            if (config.TryGetValue(Constants.KeyName.AcceptedEntityType, out var customType) && !string.IsNullOrWhiteSpace(customType?.ToString()))
-            {
-                if (!request.EntityMetaData.EntityType.Is(customType.ToString()))
-                {
-                    yield break;
-                }
-            }
-            else if (!this.Accepts(request.EntityMetaData.EntityType))
+            if (!this.Accepts(config, request.EntityMetaData.EntityType))
                 yield break;
 
             var existingResults = request.GetQueryResults<Result>(this).ToList();
@@ -1252,8 +1270,9 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             // Query Input
             var entityType          = request.EntityMetaData.EntityType;
 
-            var organizationName = GetValue(request, config, Constants.KeyName.OrganizationNameKey, Core.Data.Vocabularies.Vocabularies.CluedInOrganization.OrganizationName);
-            var website = GetValue(request, config, Constants.KeyName.WebsiteKey, Core.Data.Vocabularies.Vocabularies.CluedInOrganization.Website);
+            var configMap        = config.ToDictionary();
+            var organizationName = GetValue(request, configMap, Constants.KeyName.OrganizationNameKey, Core.Data.Vocabularies.Vocabularies.CluedInOrganization.OrganizationName);
+            var website          = GetValue(request, configMap, Constants.KeyName.WebsiteKey, Core.Data.Vocabularies.Vocabularies.CluedInOrganization.Website);
 
 
             if (!string.IsNullOrEmpty(request.EntityMetaData.Name))
@@ -1460,14 +1479,9 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
                 metadata.Uri = uri;
         }
 
-        public IEnumerable<EntityType> Accepts(IDictionary<string, object> config, IProvider provider)
-        {
-            return AcceptedEntityTypes;
-        }
-
         public IEnumerable<IExternalSearchQuery> BuildQueries(ExecutionContext context, IExternalSearchRequest request, IDictionary<string, object> config, IProvider provider)
         {
-            return InternalBuildQueries(context, request, config);
+            return InternalBuildQueries(context, request, new KnowledgeGraphExternalSearchJobData(config));
         }
 
         public IEnumerable<IExternalSearchQueryResult> ExecuteSearch(ExecutionContext context, IExternalSearchQuery query, IDictionary<string, object> config, IProvider provider)
@@ -1489,6 +1503,9 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         {
             return GetPrimaryEntityPreviewImage(context, result, request);
         }
+
+        // Since this is a configurable external search provider, theses methods should never be called
+        public override bool Accepts(EntityType entityType) => throw new NotSupportedException();
 
         public string Icon { get; } = Constants.Icon;
         public string Domain { get; } = Constants.Domain;
