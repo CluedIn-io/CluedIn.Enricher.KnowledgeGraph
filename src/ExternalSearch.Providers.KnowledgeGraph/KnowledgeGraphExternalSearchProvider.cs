@@ -33,7 +33,11 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
     /// <seealso cref="CluedIn.ExternalSearch.ExternalSearchProviderBase" />
     public partial class KnowledgeGraphExternalSearchProvider : ExternalSearchProviderBase, IExternalSearchResultLogger, IExtendedEnricherMetadata, IConfigurableExternalSearchProvider
     {
-        private static readonly EntityType[] AcceptedEntityTypes = { EntityType.Organization };
+        /**********************************************************************************************************
+         * FIELDS
+         **********************************************************************************************************/
+
+        private static readonly EntityType[] DefaultAcceptedEntityTypes = { EntityType.Organization };
 
         /**********************************************************************************************************
          * FIELDS
@@ -1209,11 +1213,8 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
          * CONSTRUCTORS
          **********************************************************************************************************/
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="KnowledgeGraphExternalSearchProvider" /> class.
-        /// </summary>
         public KnowledgeGraphExternalSearchProvider()
-            : base(Core.Constants.ExternalSearchProviders.GoogleKnowledgeGraphId, AcceptedEntityTypes)
+            : base(Core.Constants.ExternalSearchProviders.GoogleKnowledgeGraphId, DefaultAcceptedEntityTypes)
         {
         }
 
@@ -1221,27 +1222,36 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
          * METHODS
          **********************************************************************************************************/
 
-        /// <summary>Builds the queries.</summary>
-        /// <param name="context">The context.</param>
-        /// <param name="request">The request.</param>
-        /// <returns>The search queries.</returns>
-        public override IEnumerable<IExternalSearchQuery> BuildQueries(ExecutionContext context, IExternalSearchRequest request)
+        public IEnumerable<EntityType> Accepts(IDictionary<string, object> config, IProvider provider) => this.Accepts(config);
+
+        private IEnumerable<EntityType> Accepts(IDictionary<string, object> config)
+            => Accepts(new KnowledgeGraphExternalSearchJobData(config));
+
+        private IEnumerable<EntityType> Accepts(KnowledgeGraphExternalSearchJobData config)
         {
-            foreach (var externalSearchQuery in InternalBuildQueries(context, request))
+            if (!string.IsNullOrWhiteSpace(config.AcceptedEntityType))
             {
-                yield return externalSearchQuery;
+                // If configured, only accept the configured entity types
+                return new EntityType[] { config.AcceptedEntityType };
             }
+
+            // Fallback to default accepted entity types
+            return DefaultAcceptedEntityTypes;
         }
-        private IEnumerable<IExternalSearchQuery> InternalBuildQueries(ExecutionContext context, IExternalSearchRequest request, IDictionary<string, object> config = null)
+
+        private bool Accepts(KnowledgeGraphExternalSearchJobData config, EntityType entityTypeToEvaluate)
         {
-            if (config.TryGetValue(Constants.KeyName.AcceptedEntityType, out var customType) && !string.IsNullOrWhiteSpace(customType?.ToString()))
-            {
-                if (!request.EntityMetaData.EntityType.Is(customType.ToString()))
-                {
-                    yield break;
-                }
-            }
-            else if (!this.Accepts(request.EntityMetaData.EntityType))
+            var configurableAcceptedEntityTypes = this.Accepts(config).ToArray();
+
+            return configurableAcceptedEntityTypes.Any(entityTypeToEvaluate.Is);
+        }
+
+        public IEnumerable<IExternalSearchQuery> BuildQueries(ExecutionContext context, IExternalSearchRequest request, IDictionary<string, object> config, IProvider provider)
+            => InternalBuildQueries(context, request, new KnowledgeGraphExternalSearchJobData(config));
+
+        private IEnumerable<IExternalSearchQuery> InternalBuildQueries(ExecutionContext context, IExternalSearchRequest request, KnowledgeGraphExternalSearchJobData config)
+        {
+            if (!this.Accepts(config, request.EntityMetaData.EntityType))
                 yield break;
 
             var existingResults = request.GetQueryResults<Result>(this).ToList();
@@ -1252,8 +1262,9 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             // Query Input
             var entityType          = request.EntityMetaData.EntityType;
 
-            var organizationName = GetValue(request, config, Constants.KeyName.OrganizationNameKey, Core.Data.Vocabularies.Vocabularies.CluedInOrganization.OrganizationName);
-            var website = GetValue(request, config, Constants.KeyName.WebsiteKey, Core.Data.Vocabularies.Vocabularies.CluedInOrganization.Website);
+            var configMap        = config.ToDictionary();
+            var organizationName = GetValue(request, configMap, Constants.KeyName.OrganizationNameKey, Core.Data.Vocabularies.Vocabularies.CluedInOrganization.OrganizationName);
+            var website          = GetValue(request, configMap, Constants.KeyName.WebsiteKey, Core.Data.Vocabularies.Vocabularies.CluedInOrganization.Website);
 
 
             if (!string.IsNullOrEmpty(request.EntityMetaData.Name))
@@ -1290,11 +1301,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             return value;
         }
 
-        /// <summary>Executes the search.</summary>
-        /// <param name="context">The context.</param>
-        /// <param name="query">The query.</param>
-        /// <returns>The results.</returns>
-        public override IEnumerable<IExternalSearchQueryResult> ExecuteSearch(ExecutionContext context, IExternalSearchQuery query)
+        public IEnumerable<IExternalSearchQueryResult> ExecuteSearch(ExecutionContext context, IExternalSearchQuery query, IDictionary<string, object> config, IProvider provider)
         {
             var name = query.QueryParameters.GetValue<string, HashSet<string>>(ExternalSearchQueryParameter.Name.ToString(), new HashSet<string>()).FirstOrDefault();
             var uri  = query.QueryParameters.GetValue<string, HashSet<string>>(ExternalSearchQueryParameter.Uri.ToString(), new HashSet<string>()).FirstOrDefault();
@@ -1331,13 +1338,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
                 throw new ApplicationException("Could not execute external search query - StatusCode:" + response.StatusCode);
         }
 
-        /// <summary>Builds the clues.</summary>
-        /// <param name="context">The context.</param>
-        /// <param name="query">The query.</param>
-        /// <param name="result">The result.</param>
-        /// <param name="request">The request.</param>
-        /// <returns>The clues.</returns>
-        public override IEnumerable<Clue> BuildClues(ExecutionContext context, IExternalSearchQuery query, IExternalSearchQueryResult result, IExternalSearchRequest request)
+        public IEnumerable<Clue> BuildClues(ExecutionContext context, IExternalSearchQuery query, IExternalSearchQueryResult result, IExternalSearchRequest request, IDictionary<string, object> config, IProvider provider)
         {
             var resultItem = result.As<Result>();
 
@@ -1354,12 +1355,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             yield return clue;
         }
 
-        /// <summary>Gets the primary entity metadata.</summary>
-        /// <param name="context">The context.</param>
-        /// <param name="result">The result.</param>
-        /// <param name="request">The request.</param>
-        /// <returns>The primary entity metadata.</returns>
-        public override IEntityMetadata GetPrimaryEntityMetadata(ExecutionContext context, IExternalSearchQueryResult result, IExternalSearchRequest request)
+        public IEntityMetadata GetPrimaryEntityMetadata(ExecutionContext context, IExternalSearchQueryResult result, IExternalSearchRequest request, IDictionary<string, object> config, IProvider provider)
         {
             var resultItem = result.As<Result>();
 
@@ -1369,19 +1365,16 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             return this.CreateMetadata(resultItem, request);
         }
 
-        /// <summary>Gets the preview image.</summary>
-        /// <param name="context">The context.</param>
-        /// <param name="result">The result.</param>
-        /// <param name="request">The request.</param>
-        /// <returns>The preview image.</returns>
         public override IPreviewImage GetPrimaryEntityPreviewImage(ExecutionContext context, IExternalSearchQueryResult result, IExternalSearchRequest request)
         {
             return null;
         }
 
-        /// <summary>Determines whether the specified result is filtered.</summary>
-        /// <param name="result">The result.</param>
-        /// <returns><c>true</c> if the result is filtered; otherwise <c>false</c>.</returns>
+        public IPreviewImage GetPrimaryEntityPreviewImage(ExecutionContext context, IExternalSearchQueryResult result, IExternalSearchRequest request, IDictionary<string, object> config, IProvider provider)
+        {
+            return null;
+        }
+
         private bool IsFiltered(Result result)
         {
             if (result == null)
@@ -1400,9 +1393,6 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             return true;
         }
 
-        /// <summary>Creates the metadata.</summary>
-        /// <param name="resultItem">The result item.</param>
-        /// <returns>The metadata.</returns>
         private IEntityMetadata CreateMetadata(IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
         {
             var metadata = new EntityMetadataPart();
@@ -1412,24 +1402,16 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             return metadata;
         }
 
-        /// <summary>Gets the origin entity code.</summary>
-        /// <param name="resultItem">The result item.</param>
-        /// <returns>The origin entity code.</returns>
         private EntityCode GetOriginEntityCode(IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
         {
             return new EntityCode(request.EntityMetaData.EntityType, this.GetCodeOrigin(), request.EntityMetaData.OriginEntityCode.Value);
         }
 
-        /// <summary>Gets the code origin.</summary>
-        /// <returns>The code origin</returns>
         private CodeOrigin GetCodeOrigin()
         {
             return CodeOrigin.CluedIn.CreateSpecific("google-knowledgeGraph");
         }
 
-        /// <summary>Populates the metadata.</summary>
-        /// <param name="metadata">The metadata.</param>
-        /// <param name="resultItem">The result item.</param>
         private void PopulateMetadata(IEntityMetadata metadata, IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
         {
             var code = this.GetOriginEntityCode(resultItem, request);
@@ -1447,11 +1429,10 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             metadata.Properties[KnowledgeGraphVocabulary.Organization.DetailedDescriptionLicense]   = resultItem.Data.detailedDescription.PrintIfAvailable(v => v.license);
             metadata.Properties[KnowledgeGraphVocabulary.Organization.DetailedDescriptionUrl]       = resultItem.Data.detailedDescription.PrintIfAvailable(v => v.url);
 
-            if (resultItem.Data.type != null)
-                foreach (var tag in resultItem.Data.type)
-                {
-                    metadata.Tags.Add(new Tag(tag));
-                }
+            foreach (var tag in resultItem.Data.type ?? (IEnumerable<string>)Array.Empty<string>())
+            {
+                metadata.Tags.Add(new Tag(tag));
+            }
 
             metadata.Codes.Add(code);
             Uri uri;
@@ -1460,35 +1441,16 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
                 metadata.Uri = uri;
         }
 
-        public IEnumerable<EntityType> Accepts(IDictionary<string, object> config, IProvider provider)
-        {
-            return AcceptedEntityTypes;
-        }
+        // Since this is a configurable external search provider, theses methods should never be called
+        public override bool Accepts(EntityType entityType) => throw new NotSupportedException();
+        public override IEnumerable<IExternalSearchQuery> BuildQueries(ExecutionContext context, IExternalSearchRequest request) => throw new NotSupportedException();
+        public override IEnumerable<IExternalSearchQueryResult> ExecuteSearch(ExecutionContext context, IExternalSearchQuery query) => throw new NotSupportedException();
+        public override IEnumerable<Clue> BuildClues(ExecutionContext context, IExternalSearchQuery query, IExternalSearchQueryResult result, IExternalSearchRequest request) => throw new NotSupportedException();
+        public override IEntityMetadata GetPrimaryEntityMetadata(ExecutionContext context, IExternalSearchQueryResult result, IExternalSearchRequest request) => throw new NotSupportedException();
 
-        public IEnumerable<IExternalSearchQuery> BuildQueries(ExecutionContext context, IExternalSearchRequest request, IDictionary<string, object> config, IProvider provider)
-        {
-            return InternalBuildQueries(context, request, config);
-        }
-
-        public IEnumerable<IExternalSearchQueryResult> ExecuteSearch(ExecutionContext context, IExternalSearchQuery query, IDictionary<string, object> config, IProvider provider)
-        {
-            return ExecuteSearch(context, query);
-        }
-
-        public IEnumerable<Clue> BuildClues(ExecutionContext context, IExternalSearchQuery query, IExternalSearchQueryResult result, IExternalSearchRequest request, IDictionary<string, object> config, IProvider provider)
-        {
-            return BuildClues(context, query, result, request);
-        }
-
-        public IEntityMetadata GetPrimaryEntityMetadata(ExecutionContext context, IExternalSearchQueryResult result, IExternalSearchRequest request, IDictionary<string, object> config, IProvider provider)
-        {
-            return GetPrimaryEntityMetadata(context, result, request);
-        }
-
-        public IPreviewImage GetPrimaryEntityPreviewImage(ExecutionContext context, IExternalSearchQueryResult result, IExternalSearchRequest request, IDictionary<string, object> config, IProvider provider)
-        {
-            return GetPrimaryEntityPreviewImage(context, result, request);
-        }
+        /**********************************************************************************************************
+         * PROPERTIES
+         **********************************************************************************************************/
 
         public string Icon { get; } = Constants.Icon;
         public string Domain { get; } = Constants.Domain;
