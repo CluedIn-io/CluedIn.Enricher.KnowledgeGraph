@@ -1222,59 +1222,66 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
          * METHODS
          **********************************************************************************************************/
 
-        public IEnumerable<EntityType> Accepts(IDictionary<string, object> config, IProvider provider) => this.Accepts(config);
+        public IEnumerable<EntityType> Accepts(IDictionary<string, object> config, IProvider provider) => Accepts(config);
 
-        private IEnumerable<EntityType> Accepts(IDictionary<string, object> config)
-            => Accepts(new KnowledgeGraphExternalSearchJobData(config));
-
-        private IEnumerable<EntityType> Accepts(KnowledgeGraphExternalSearchJobData config)
+        private static IEnumerable<EntityType> Accepts(IDictionary<string, object> config)
         {
-            if (!string.IsNullOrWhiteSpace(config.AcceptedEntityType))
+            if (config.TryGetValue(Constants.KeyName.AcceptedEntityType, out var acceptedEntityTypeObj) && acceptedEntityTypeObj is string acceptedEntityType && !string.IsNullOrWhiteSpace(acceptedEntityType))
             {
                 // If configured, only accept the configured entity types
-                return new EntityType[] { config.AcceptedEntityType };
+                return new EntityType[] { acceptedEntityType };
             }
 
             // Fallback to default accepted entity types
             return DefaultAcceptedEntityTypes;
         }
 
-        private bool Accepts(KnowledgeGraphExternalSearchJobData config, EntityType entityTypeToEvaluate)
+        private static bool Accepts(IDictionary<string, object> config, EntityType entityTypeToEvaluate)
         {
-            var configurableAcceptedEntityTypes = this.Accepts(config).ToArray();
+            var configurableAcceptedEntityTypes = Accepts(config).ToArray();
 
             return configurableAcceptedEntityTypes.Any(entityTypeToEvaluate.Is);
         }
 
-        public IEnumerable<IExternalSearchQuery> BuildQueries(ExecutionContext context, IExternalSearchRequest request, IDictionary<string, object> config, IProvider provider)
-            => InternalBuildQueries(context, request, new KnowledgeGraphExternalSearchJobData(config));
+        public IEnumerable<IExternalSearchQuery> BuildQueries(ExecutionContext context, IExternalSearchRequest request,
+            IDictionary<string, object> config, IProvider provider)
+            => InternalBuildQueries(context, request, config);
 
-        private IEnumerable<IExternalSearchQuery> InternalBuildQueries(ExecutionContext context, IExternalSearchRequest request, KnowledgeGraphExternalSearchJobData config)
+        private IEnumerable<IExternalSearchQuery> InternalBuildQueries(ExecutionContext context, IExternalSearchRequest request,
+            IDictionary<string, object> config)
         {
-            if (!this.Accepts(config, request.EntityMetaData.EntityType))
+            var jobData = new KnowledgeGraphExternalSearchJobData(config);
+
+            if (!Accepts(config, request.EntityMetaData.EntityType))
                 yield break;
 
             var existingResults = request.GetQueryResults<Result>(this).ToList();
 
             Func<string, bool> nameFilter = value => OrganizationFilters.NameFilter(context, value) || existingResults.Any(r => string.Equals(r.Data.name, value, StringComparison.InvariantCultureIgnoreCase));
-            Func<string, bool> urlFilter = value =>  existingResults.Any(r => string.Equals(r.Data.url, value, StringComparison.InvariantCultureIgnoreCase));
+            Func<string, bool> urlFilter = value => existingResults.Any(r => string.Equals(r.Data.url, value, StringComparison.InvariantCultureIgnoreCase));
 
             // Query Input
-            var entityType          = request.EntityMetaData.EntityType;
+            var entityType = request.EntityMetaData.EntityType;
 
-            var configMap        = config.ToDictionary();
-            var organizationName = GetValue(request, configMap, Constants.KeyName.OrganizationNameKey, Core.Data.Vocabularies.Vocabularies.CluedInOrganization.OrganizationName);
-            var website          = GetValue(request, configMap, Constants.KeyName.WebsiteKey, Core.Data.Vocabularies.Vocabularies.CluedInOrganization.Website);
-
+            var organizationName = GetValue(request, config, Constants.KeyName.OrganizationNameKey, Core.Data.Vocabularies.Vocabularies.CluedInOrganization.OrganizationName);
 
             if (!string.IsNullOrEmpty(request.EntityMetaData.Name))
                 organizationName.Add(request.EntityMetaData.Name);
+            
             if (!string.IsNullOrEmpty(request.EntityMetaData.DisplayName))
                 organizationName.Add(request.EntityMetaData.DisplayName);
 
+            if (organizationName != null)
+            {
+                var values = organizationName.Select(NameNormalization.Normalize).ToHashSet();
+
+                foreach (var value in values.Where(v => !nameFilter(v)))
+                    yield return new ExternalSearchQuery(this, entityType, ExternalSearchQueryParameter.Name, value);
+            }
+
+            var website = GetValue(request, config, Constants.KeyName.WebsiteKey, Core.Data.Vocabularies.Vocabularies.CluedInOrganization.Website);
+
             website.AddRange(website.ToList().GetDomainNamesFromUris());
-
-
 
             if (website != null)
             {
@@ -1304,7 +1311,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         public IEnumerable<IExternalSearchQueryResult> ExecuteSearch(ExecutionContext context, IExternalSearchQuery query, IDictionary<string, object> config, IProvider provider)
         {
             var name = query.QueryParameters.GetValue<string, HashSet<string>>(ExternalSearchQueryParameter.Name.ToString(), new HashSet<string>()).FirstOrDefault();
-            var uri  = query.QueryParameters.GetValue<string, HashSet<string>>(ExternalSearchQueryParameter.Uri.ToString(), new HashSet<string>()).FirstOrDefault();
+            var uri = query.QueryParameters.GetValue<string, HashSet<string>>(ExternalSearchQueryParameter.Uri.ToString(), new HashSet<string>()).FirstOrDefault();
 
             if (string.IsNullOrEmpty(name) && string.IsNullOrEmpty(uri))
                 yield break;
@@ -1313,15 +1320,21 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
 
             var client = new RestClient("https://kgsearch.googleapis.com");
 
-            var request = new RestRequest(string.Format("v1/entities:search?query={0}&key={1}&limit=10&indent=True", name ?? uri, "AIzaSyA_jYkIzEp_8w90K70KQYuoKLrLuOf1wZA"), Method.GET);
+            var request = new RestRequest(string.Format("v1/entities:search?key={0}&query={1}&limit=10&indent=True",
+                "AIzaSyA_jYkIzEp_8w90K70KQYuoKLrLuOf1wZA",
+                string.Join("&query=", new[] { name?.Trim(), uri?.Trim() }.WhereNotNullOrEmpty())),
+                Method.GET);
 
-            var response = client.ExecuteTaskAsync<KnowledgeResponse>(request).Result;
+            var response = client.ExecuteAsync<KnowledgeResponse>(request).GetAwaiter().GetResult();
 
             if (response.StatusCode == HttpStatusCode.OK)
             {
                 if (response.Data.itemListElement != null)
                 {
-                    var elements = response.Data.itemListElement.Where(r => r.result != null && (r.result.id != null || r.result.name != null));
+                    var elements = response.Data
+                        .itemListElement
+                        .Where(r => r.result != null &&
+                            (r.result.id != null || r.result.name != null));
 
                     foreach (var result in elements)
                     {
@@ -1342,15 +1355,16 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         {
             var resultItem = result.As<Result>();
 
-            if (this.IsFiltered(resultItem.Data))
+            if (IsFiltered(resultItem.Data))
                 yield break;
 
-            var code = this.GetOriginEntityCode(resultItem, request);
+            var code = GetOriginEntityCode(resultItem, request);
 
             var clue = new Clue(code, context.Organization);
             clue.Data.OriginProviderDefinitionId = this.Id;
+            clue.Data.EntityData.Codes.Add(request.EntityMetaData.OriginEntityCode);
 
-            this.PopulateMetadata(clue.Data.EntityData, resultItem, request);
+            PopulateMetadata(clue.Data.EntityData, resultItem, request);
 
             yield return clue;
         }
@@ -1359,10 +1373,10 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         {
             var resultItem = result.As<Result>();
 
-            if (this.IsFiltered(resultItem.Data))
+            if (IsFiltered(resultItem.Data))
                 return null;
 
-            return this.CreateMetadata(resultItem, request);
+            return CreateMetadata(resultItem, request);
         }
 
         public override IPreviewImage GetPrimaryEntityPreviewImage(ExecutionContext context, IExternalSearchQueryResult result, IExternalSearchRequest request)
@@ -1378,66 +1392,63 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         private bool IsFiltered(Result result)
         {
             if (result == null)
+                return false;
+
+            if (result.type != null && result.type.Any(t => typeNames.Contains(t.ToLowerInvariant())))
                 return true;
 
-            if (result.type != null && result.type.Any(t => this.typeNames.Contains(t.ToLowerInvariant())))
-                return false;
-
             if (result.description != null &&
-                    (this.typeNames.Contains(result.description.ToLowerInvariant())
-                    ||
-                    this.typeNames.Any(t => result.description.ToLowerInvariant().Contains(t))
-                    ))
-                return false;
+                (typeNames.Contains(result.description.ToLowerInvariant()) ||
+                typeNames.Any(t => result.description.ToLowerInvariant().Contains(t))))
+            {
+                return true;
+            }
 
-            return true;
+            return false;
         }
 
-        private IEntityMetadata CreateMetadata(IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
+        private static IEntityMetadata CreateMetadata(IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
         {
             var metadata = new EntityMetadataPart();
 
-            this.PopulateMetadata(metadata, resultItem, request);
+            PopulateMetadata(metadata, resultItem, request);
 
             return metadata;
         }
 
-        private EntityCode GetOriginEntityCode(IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
+        private static EntityCode GetOriginEntityCode(IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
         {
-            return new EntityCode(request.EntityMetaData.EntityType, this.GetCodeOrigin(), request.EntityMetaData.OriginEntityCode.Value);
+            return new EntityCode(request.EntityMetaData.EntityType, GetCodeOrigin(), request.EntityMetaData.OriginEntityCode.Value);
         }
 
-        private CodeOrigin GetCodeOrigin()
+        private static CodeOrigin GetCodeOrigin()
         {
             return CodeOrigin.CluedIn.CreateSpecific("google-knowledgeGraph");
         }
 
-        private void PopulateMetadata(IEntityMetadata metadata, IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
+        private static void PopulateMetadata(IEntityMetadata metadata, IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
         {
-            var code = this.GetOriginEntityCode(resultItem, request);
+            var code = GetOriginEntityCode(resultItem, request);
 
-            metadata.EntityType         = request.EntityMetaData.EntityType;
-            metadata.Name               = request.EntityMetaData.Name;
-            metadata.OriginEntityCode   = code;
+            metadata.EntityType = request.EntityMetaData.EntityType;
+            metadata.Name = request.EntityMetaData.Name;
+            metadata.OriginEntityCode = code;
             metadata.Codes.Add(code);
 
-            metadata.Description        = resultItem.Data.detailedDescription.PrintIfAvailable(v => v.articleBody) ?? resultItem.Data.description;
+            metadata.Description = resultItem.Data.detailedDescription.PrintIfAvailable(v => v.articleBody) ?? resultItem.Data.description;
 
-            metadata.Properties[KnowledgeGraphVocabulary.Organization.Url]                          = resultItem.Data.url;
-            metadata.Properties[KnowledgeGraphVocabulary.Organization.Description]                  = resultItem.Data.description;
-            metadata.Properties[KnowledgeGraphVocabulary.Organization.DetailedDescriptionBody]      = resultItem.Data.detailedDescription.PrintIfAvailable(v => v.articleBody);
-            metadata.Properties[KnowledgeGraphVocabulary.Organization.DetailedDescriptionLicense]   = resultItem.Data.detailedDescription.PrintIfAvailable(v => v.license);
-            metadata.Properties[KnowledgeGraphVocabulary.Organization.DetailedDescriptionUrl]       = resultItem.Data.detailedDescription.PrintIfAvailable(v => v.url);
+            metadata.Properties[KnowledgeGraphVocabulary.Organization.Url] = resultItem.Data.url;
+            metadata.Properties[KnowledgeGraphVocabulary.Organization.Description] = resultItem.Data.description;
+            metadata.Properties[KnowledgeGraphVocabulary.Organization.DetailedDescriptionBody] = resultItem.Data.detailedDescription.PrintIfAvailable(v => v.articleBody);
+            metadata.Properties[KnowledgeGraphVocabulary.Organization.DetailedDescriptionLicense] = resultItem.Data.detailedDescription.PrintIfAvailable(v => v.license);
+            metadata.Properties[KnowledgeGraphVocabulary.Organization.DetailedDescriptionUrl] = resultItem.Data.detailedDescription.PrintIfAvailable(v => v.url);
 
             foreach (var tag in resultItem.Data.type ?? (IEnumerable<string>)Array.Empty<string>())
             {
                 metadata.Tags.Add(new Tag(tag));
             }
 
-            metadata.Codes.Add(code);
-            Uri uri;
-
-            if (resultItem.Data.url != null && Uri.TryCreate(resultItem.Data.url, UriKind.Absolute, out uri))
+            if (resultItem.Data.url != null && Uri.TryCreate(resultItem.Data.url, UriKind.Absolute, out var uri))
                 metadata.Uri = uri;
         }
 
@@ -1447,7 +1458,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         public override IEnumerable<IExternalSearchQueryResult> ExecuteSearch(ExecutionContext context, IExternalSearchQuery query) => throw new NotSupportedException();
         public override IEnumerable<Clue> BuildClues(ExecutionContext context, IExternalSearchQuery query, IExternalSearchQueryResult result, IExternalSearchRequest request) => throw new NotSupportedException();
         public override IEntityMetadata GetPrimaryEntityMetadata(ExecutionContext context, IExternalSearchQueryResult result, IExternalSearchRequest request) => throw new NotSupportedException();
-
+        
         /**********************************************************************************************************
          * PROPERTIES
          **********************************************************************************************************/
