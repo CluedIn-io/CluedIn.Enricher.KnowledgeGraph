@@ -1258,14 +1258,14 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             var existingResults = request.GetQueryResults<Result>(this).ToList();
 
             Func<string, bool> nameFilter = value => OrganizationFilters.NameFilter(context, value) || existingResults.Any(r => string.Equals(r.Data.name, value, StringComparison.InvariantCultureIgnoreCase));
-            Func<string, bool> urlFilter = value => existingResults.Any(r => string.Equals(r.Data.url, value, StringComparison.InvariantCultureIgnoreCase));
+            Func<string, bool> urlFilter = value =>  existingResults.Any(r => string.Equals(r.Data.url, value, StringComparison.InvariantCultureIgnoreCase));
 
             // Query Input
-            var entityType = request.EntityMetaData.EntityType;
+            var entityType          = request.EntityMetaData.EntityType;
 
-            var configMap = config.ToDictionary();
+            var configMap        = config.ToDictionary();
             var organizationName = GetValue(request, configMap, Constants.KeyName.OrganizationNameKey, Core.Data.Vocabularies.Vocabularies.CluedInOrganization.OrganizationName);
-            var website = GetValue(request, configMap, Constants.KeyName.WebsiteKey, Core.Data.Vocabularies.Vocabularies.CluedInOrganization.Website);
+            var website          = GetValue(request, configMap, Constants.KeyName.WebsiteKey, Core.Data.Vocabularies.Vocabularies.CluedInOrganization.Website);
 
 
             if (!string.IsNullOrEmpty(request.EntityMetaData.Name))
@@ -1313,7 +1313,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         public IEnumerable<IExternalSearchQueryResult> ExecuteSearch(ExecutionContext context, IExternalSearchQuery query, IDictionary<string, object> config, IProvider provider)
         {
             var name = query.QueryParameters.GetValue<string, HashSet<string>>(ExternalSearchQueryParameter.Name.ToString(), new HashSet<string>()).FirstOrDefault();
-            var uri = query.QueryParameters.GetValue<string, HashSet<string>>(ExternalSearchQueryParameter.Uri.ToString(), new HashSet<string>()).FirstOrDefault();
+            var uri =  query.QueryParameters.GetValue<string, HashSet<string>>(ExternalSearchQueryParameter.Uri.ToString(), new HashSet<string>()).FirstOrDefault();
 
             if (string.IsNullOrEmpty(name) && string.IsNullOrEmpty(uri))
                 yield break;
@@ -1438,19 +1438,19 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         private void PopulateMetadata(IEntityMetadata metadata, IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
         {
             var code = this.GetOriginEntityCode(resultItem, request);
-
-            metadata.EntityType = request.EntityMetaData.EntityType;
-            metadata.Name = request.EntityMetaData.Name;
-            metadata.OriginEntityCode = code;
+            
+            metadata.EntityType         = request.EntityMetaData.EntityType;
+            metadata.Name               = request.EntityMetaData.Name;
+            metadata.OriginEntityCode   = code;
             metadata.Codes.Add(code);
 
-            metadata.Description = resultItem.Data.detailedDescription.PrintIfAvailable(v => v.articleBody) ?? resultItem.Data.description;
+            metadata.Description        = resultItem.Data.detailedDescription.PrintIfAvailable(v => v.articleBody) ?? resultItem.Data.description;
 
-            metadata.Properties[KnowledgeGraphVocabulary.Organization.Url] = resultItem.Data.url;
-            metadata.Properties[KnowledgeGraphVocabulary.Organization.Description] = resultItem.Data.description;
-            metadata.Properties[KnowledgeGraphVocabulary.Organization.DetailedDescriptionBody] = resultItem.Data.detailedDescription.PrintIfAvailable(v => v.articleBody);
-            metadata.Properties[KnowledgeGraphVocabulary.Organization.DetailedDescriptionLicense] = resultItem.Data.detailedDescription.PrintIfAvailable(v => v.license);
-            metadata.Properties[KnowledgeGraphVocabulary.Organization.DetailedDescriptionUrl] = resultItem.Data.detailedDescription.PrintIfAvailable(v => v.url);
+            metadata.Properties[KnowledgeGraphVocabulary.Organization.Url]                          = resultItem.Data.url;
+            metadata.Properties[KnowledgeGraphVocabulary.Organization.Description]                  = resultItem.Data.description;
+            metadata.Properties[KnowledgeGraphVocabulary.Organization.DetailedDescriptionBody]      = resultItem.Data.detailedDescription.PrintIfAvailable(v => v.articleBody);
+            metadata.Properties[KnowledgeGraphVocabulary.Organization.DetailedDescriptionLicense]   = resultItem.Data.detailedDescription.PrintIfAvailable(v => v.license);
+            metadata.Properties[KnowledgeGraphVocabulary.Organization.DetailedDescriptionUrl]       = resultItem.Data.detailedDescription.PrintIfAvailable(v => v.url);
 
             foreach (var tag in resultItem.Data.type ?? (IEnumerable<string>)Array.Empty<string>())
             {
