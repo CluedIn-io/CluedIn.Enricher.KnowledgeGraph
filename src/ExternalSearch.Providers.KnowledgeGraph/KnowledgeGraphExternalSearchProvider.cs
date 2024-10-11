@@ -1313,7 +1313,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         public IEnumerable<IExternalSearchQueryResult> ExecuteSearch(ExecutionContext context, IExternalSearchQuery query, IDictionary<string, object> config, IProvider provider)
         {
             var name = query.QueryParameters.GetValue<string, HashSet<string>>(ExternalSearchQueryParameter.Name.ToString(), new HashSet<string>()).FirstOrDefault();
-            var uri =  query.QueryParameters.GetValue<string, HashSet<string>>(ExternalSearchQueryParameter.Uri.ToString(), new HashSet<string>()).FirstOrDefault();
+            var uri  = query.QueryParameters.GetValue<string, HashSet<string>>(ExternalSearchQueryParameter.Uri.ToString(), new HashSet<string>()).FirstOrDefault();
 
             if (string.IsNullOrEmpty(name) && string.IsNullOrEmpty(uri))
                 yield break;
@@ -1438,7 +1438,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         private void PopulateMetadata(IEntityMetadata metadata, IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
         {
             var code = this.GetOriginEntityCode(resultItem, request);
-            
+
             metadata.EntityType         = request.EntityMetaData.EntityType;
             metadata.Name               = request.EntityMetaData.Name;
             metadata.OriginEntityCode   = code;
