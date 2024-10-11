@@ -25,6 +25,7 @@ using CluedIn.Core.ExternalSearch;
 using CluedIn.Core.Providers;
 using EntityType = CluedIn.Core.Data.EntityType;
 using CluedIn.Core.Data.Vocabularies;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
 {
@@ -1222,37 +1223,36 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
          * METHODS
          **********************************************************************************************************/
 
-        public IEnumerable<EntityType> Accepts(IDictionary<string, object> config, IProvider provider) => Accepts(config);
+        public IEnumerable<EntityType> Accepts(IDictionary<string, object> config, IProvider provider) => this.Accepts(config);
 
-        private static IEnumerable<EntityType> Accepts(IDictionary<string, object> config)
+        private IEnumerable<EntityType> Accepts(IDictionary<string, object> config)
+            => Accepts(new KnowledgeGraphExternalSearchJobData(config));
+
+        private IEnumerable<EntityType> Accepts(KnowledgeGraphExternalSearchJobData config)
         {
-            if (config.TryGetValue(Constants.KeyName.AcceptedEntityType, out var acceptedEntityTypeObj) && acceptedEntityTypeObj is string acceptedEntityType && !string.IsNullOrWhiteSpace(acceptedEntityType))
+            if (!string.IsNullOrWhiteSpace(config.AcceptedEntityType))
             {
                 // If configured, only accept the configured entity types
-                return new EntityType[] { acceptedEntityType };
+                return new EntityType[] { config.AcceptedEntityType };
             }
 
             // Fallback to default accepted entity types
             return DefaultAcceptedEntityTypes;
         }
 
-        private static bool Accepts(IDictionary<string, object> config, EntityType entityTypeToEvaluate)
+        private bool Accepts(KnowledgeGraphExternalSearchJobData config, EntityType entityTypeToEvaluate)
         {
-            var configurableAcceptedEntityTypes = Accepts(config).ToArray();
+            var configurableAcceptedEntityTypes = this.Accepts(config).ToArray();
 
             return configurableAcceptedEntityTypes.Any(entityTypeToEvaluate.Is);
         }
 
-        public IEnumerable<IExternalSearchQuery> BuildQueries(ExecutionContext context, IExternalSearchRequest request,
-            IDictionary<string, object> config, IProvider provider)
-            => InternalBuildQueries(context, request, config);
+        public IEnumerable<IExternalSearchQuery> BuildQueries(ExecutionContext context, IExternalSearchRequest request, IDictionary<string, object> config, IProvider provider)
+            => InternalBuildQueries(context, request, new KnowledgeGraphExternalSearchJobData(config));
 
-        private IEnumerable<IExternalSearchQuery> InternalBuildQueries(ExecutionContext context, IExternalSearchRequest request,
-            IDictionary<string, object> config)
+        private IEnumerable<IExternalSearchQuery> InternalBuildQueries(ExecutionContext context, IExternalSearchRequest request, KnowledgeGraphExternalSearchJobData config)
         {
-            var jobData = new KnowledgeGraphExternalSearchJobData(config);
-
-            if (!Accepts(config, request.EntityMetaData.EntityType))
+            if (!this.Accepts(config, request.EntityMetaData.EntityType))
                 yield break;
 
             var existingResults = request.GetQueryResults<Result>(this).ToList();
@@ -1263,11 +1263,13 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             // Query Input
             var entityType = request.EntityMetaData.EntityType;
 
-            var organizationName = GetValue(request, config, Constants.KeyName.OrganizationNameKey, Core.Data.Vocabularies.Vocabularies.CluedInOrganization.OrganizationName);
+            var configMap = config.ToDictionary();
+            var organizationName = GetValue(request, configMap, Constants.KeyName.OrganizationNameKey, Core.Data.Vocabularies.Vocabularies.CluedInOrganization.OrganizationName);
+            var website = GetValue(request, configMap, Constants.KeyName.WebsiteKey, Core.Data.Vocabularies.Vocabularies.CluedInOrganization.Website);
+
 
             if (!string.IsNullOrEmpty(request.EntityMetaData.Name))
                 organizationName.Add(request.EntityMetaData.Name);
-            
             if (!string.IsNullOrEmpty(request.EntityMetaData.DisplayName))
                 organizationName.Add(request.EntityMetaData.DisplayName);
 
@@ -1279,9 +1281,9 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
                     yield return new ExternalSearchQuery(this, entityType, ExternalSearchQueryParameter.Name, value);
             }
 
-            var website = GetValue(request, config, Constants.KeyName.WebsiteKey, Core.Data.Vocabularies.Vocabularies.CluedInOrganization.Website);
-
             website.AddRange(website.ToList().GetDomainNamesFromUris());
+
+
 
             if (website != null)
             {
@@ -1320,21 +1322,28 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
 
             var client = new RestClient("https://kgsearch.googleapis.com");
 
-            var request = new RestRequest(string.Format("v1/entities:search?key={0}&query={1}&limit=10&indent=True",
-                "AIzaSyA_jYkIzEp_8w90K70KQYuoKLrLuOf1wZA",
-                string.Join("&query=", new[] { name?.Trim(), uri?.Trim() }.WhereNotNullOrEmpty())),
-                Method.GET);
+            var queryParameters = HttpUtility.ParseQueryString("");
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                queryParameters.Add("query", name.Trim());
+            }
+            if (!string.IsNullOrWhiteSpace(uri))
+            {
+                queryParameters.Add("query", uri.Trim());
+            }
+            queryParameters.Add("key", "AIzaSyA_jYkIzEp_8w90K70KQYuoKLrLuOf1wZA");
+            queryParameters.Add("limit", "10");
+            queryParameters.Add("indent", "true");
 
-            var response = client.ExecuteAsync<KnowledgeResponse>(request).GetAwaiter().GetResult();
+            var request = new RestRequest($"v1/entities:search?{queryParameters}");
+            
+            var response = client.ExecuteTaskAsync<KnowledgeResponse>(request).Result;
 
             if (response.StatusCode == HttpStatusCode.OK)
             {
                 if (response.Data.itemListElement != null)
                 {
-                    var elements = response.Data
-                        .itemListElement
-                        .Where(r => r.result != null &&
-                            (r.result.id != null || r.result.name != null));
+                    var elements = response.Data.itemListElement.Where(r => r.result != null && (r.result.id != null || r.result.name != null));
 
                     foreach (var result in elements)
                     {
@@ -1355,16 +1364,16 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         {
             var resultItem = result.As<Result>();
 
-            if (IsFiltered(resultItem.Data))
+            if (this.IsFiltered(resultItem.Data))
                 yield break;
 
-            var code = GetOriginEntityCode(resultItem, request);
+            var code = this.GetOriginEntityCode(resultItem, request);
 
             var clue = new Clue(code, context.Organization);
             clue.Data.OriginProviderDefinitionId = this.Id;
             clue.Data.EntityData.Codes.Add(request.EntityMetaData.OriginEntityCode);
 
-            PopulateMetadata(clue.Data.EntityData, resultItem, request);
+            this.PopulateMetadata(clue.Data.EntityData, resultItem, request);
 
             yield return clue;
         }
@@ -1373,10 +1382,10 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         {
             var resultItem = result.As<Result>();
 
-            if (IsFiltered(resultItem.Data))
+            if (this.IsFiltered(resultItem.Data))
                 return null;
 
-            return CreateMetadata(resultItem, request);
+            return this.CreateMetadata(resultItem, request);
         }
 
         public override IPreviewImage GetPrimaryEntityPreviewImage(ExecutionContext context, IExternalSearchQueryResult result, IExternalSearchRequest request)
@@ -1394,41 +1403,41 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             if (result == null)
                 return false;
 
-            if (result.type != null && result.type.Any(t => typeNames.Contains(t.ToLowerInvariant())))
+            if (result.type != null && result.type.Any(t => this.typeNames.Contains(t.ToLowerInvariant())))
                 return true;
 
             if (result.description != null &&
-                (typeNames.Contains(result.description.ToLowerInvariant()) ||
-                typeNames.Any(t => result.description.ToLowerInvariant().Contains(t))))
-            {
+                    (this.typeNames.Contains(result.description.ToLowerInvariant())
+                    ||
+                    this.typeNames.Any(t => result.description.ToLowerInvariant().Contains(t))
+                    ))
                 return true;
-            }
 
             return false;
         }
 
-        private static IEntityMetadata CreateMetadata(IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
+        private IEntityMetadata CreateMetadata(IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
         {
             var metadata = new EntityMetadataPart();
 
-            PopulateMetadata(metadata, resultItem, request);
+            this.PopulateMetadata(metadata, resultItem, request);
 
             return metadata;
         }
 
-        private static EntityCode GetOriginEntityCode(IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
+        private EntityCode GetOriginEntityCode(IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
         {
-            return new EntityCode(request.EntityMetaData.EntityType, GetCodeOrigin(), request.EntityMetaData.OriginEntityCode.Value);
+            return new EntityCode(request.EntityMetaData.EntityType, this.GetCodeOrigin(), request.EntityMetaData.OriginEntityCode.Value);
         }
 
-        private static CodeOrigin GetCodeOrigin()
+        private CodeOrigin GetCodeOrigin()
         {
             return CodeOrigin.CluedIn.CreateSpecific("google-knowledgeGraph");
         }
 
-        private static void PopulateMetadata(IEntityMetadata metadata, IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
+        private void PopulateMetadata(IEntityMetadata metadata, IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
         {
-            var code = GetOriginEntityCode(resultItem, request);
+            var code = this.GetOriginEntityCode(resultItem, request);
 
             metadata.EntityType = request.EntityMetaData.EntityType;
             metadata.Name = request.EntityMetaData.Name;
@@ -1448,7 +1457,9 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
                 metadata.Tags.Add(new Tag(tag));
             }
 
-            if (resultItem.Data.url != null && Uri.TryCreate(resultItem.Data.url, UriKind.Absolute, out var uri))
+            Uri uri;
+
+            if (resultItem.Data.url != null && Uri.TryCreate(resultItem.Data.url, UriKind.Absolute, out uri))
                 metadata.Uri = uri;
         }
 
@@ -1458,7 +1469,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         public override IEnumerable<IExternalSearchQueryResult> ExecuteSearch(ExecutionContext context, IExternalSearchQuery query) => throw new NotSupportedException();
         public override IEnumerable<Clue> BuildClues(ExecutionContext context, IExternalSearchQuery query, IExternalSearchQueryResult result, IExternalSearchRequest request) => throw new NotSupportedException();
         public override IEntityMetadata GetPrimaryEntityMetadata(ExecutionContext context, IExternalSearchQueryResult result, IExternalSearchRequest request) => throw new NotSupportedException();
-        
+
         /**********************************************************************************************************
          * PROPERTIES
          **********************************************************************************************************/
