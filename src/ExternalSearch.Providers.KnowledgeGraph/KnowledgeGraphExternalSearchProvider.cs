@@ -25,7 +25,6 @@ using CluedIn.Core.ExternalSearch;
 using CluedIn.Core.Providers;
 using EntityType = CluedIn.Core.Data.EntityType;
 using CluedIn.Core.Data.Vocabularies;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
 {
