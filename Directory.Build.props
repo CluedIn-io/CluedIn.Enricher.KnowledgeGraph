@@ -11,7 +11,7 @@
     <!--
       NU5105 : Semver 2 package version 
     -->
-    <NoWarn>$(NoWarn);NU5105;IDE0011</NoWarn>
+    <NoWarn>$(NoWarn);NU5105</NoWarn>
     <ErrorReport>prompt</ErrorReport>
   </PropertyGroup>
 
