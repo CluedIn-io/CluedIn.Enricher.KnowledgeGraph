@@ -1303,6 +1303,9 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
 
         public IEnumerable<IExternalSearchQueryResult> ExecuteSearch(ExecutionContext context, IExternalSearchQuery query, IDictionary<string, object> config, IProvider provider)
         {
+            if (!config.TryGetValue(Constants.KeyName.ApiKey, out var key) || string.IsNullOrWhiteSpace(key?.ToString()))
+                yield break;
+
             var name = query.QueryParameters.GetValue<string, HashSet<string>>(ExternalSearchQueryParameter.Name.ToString(), new HashSet<string>()).FirstOrDefault();
             var uri  = query.QueryParameters.GetValue<string, HashSet<string>>(ExternalSearchQueryParameter.Uri.ToString(), new HashSet<string>()).FirstOrDefault();
 
@@ -1313,7 +1316,8 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
 
             var client = new RestClient("https://kgsearch.googleapis.com");
 
-            var request = new RestRequest(string.Format("v1/entities:search?query={0}&key={1}&limit=10&indent=True", name ?? uri, "AIzaSyA_jYkIzEp_8w90K70KQYuoKLrLuOf1wZA"), Method.GET);
+            var request = new RestRequest(string.Format("v1/entities:search?query={0}&key={1}&limit=10&indent=True", name ?? uri, key
+                .ToString()), Method.GET);
 
             var response = client.ExecuteTaskAsync<KnowledgeResponse>(request).Result;
 
