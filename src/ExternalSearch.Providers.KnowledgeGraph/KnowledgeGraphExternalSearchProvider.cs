@@ -1349,7 +1349,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
 
             var clue = new Clue(code, context.Organization);
             clue.Data.OriginProviderDefinitionId = this.Id;
-
+            clue.Data.EntityData.Codes.Add(request.EntityMetaData.OriginEntityCode);
             this.PopulateMetadata(clue.Data.EntityData, resultItem, request);
 
             yield return clue;
