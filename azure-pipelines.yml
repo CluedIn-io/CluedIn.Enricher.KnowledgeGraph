@@ -20,7 +20,7 @@ resources:
       type: github
       name: CluedIn-io/AzurePipelines.Templates
       endpoint: 'CluedIn-io'
-      ref: refs/heads/refactor
+      ref: refs/heads/feature/force-next-version
 
 pool:
   vmImage: 'windows-latest'
