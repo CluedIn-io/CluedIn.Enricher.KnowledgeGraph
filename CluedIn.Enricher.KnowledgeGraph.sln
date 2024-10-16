@@ -61,7 +61,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{4511AC5F-6
 		docs\3.2.0-release-notes.md = docs\3.2.0-release-notes.md
 		docs\3.3.0-release-notes.md = docs\3.3.0-release-notes.md
 		docs\4.0.0-release-notes.md = docs\4.0.0-release-notes.md
-		docs\4.4.0-release-notes.md = docs\4.4.0-release-notes.md
+		docs\4.0.1-release-notes.md = docs\4.0.1-release-notes.md
 	EndProjectSection
 EndProject
 Global
