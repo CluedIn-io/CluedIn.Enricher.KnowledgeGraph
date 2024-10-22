@@ -1272,9 +1272,15 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             if (!string.IsNullOrEmpty(request.EntityMetaData.DisplayName))
                 organizationName.Add(request.EntityMetaData.DisplayName);
 
+            if (organizationName != null)
+            {
+                var values = organizationName.Select(NameNormalization.Normalize).Distinct().ToHashSet();
+
+                foreach (var value in values.Where(v => !nameFilter(v)))
+                    yield return new ExternalSearchQuery(this, entityType, ExternalSearchQueryParameter.Name, value);
+            }
+
             website.AddRange(website.ToList().GetDomainNamesFromUris());
-
-
 
             if (website != null)
             {
@@ -1316,8 +1322,21 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
 
             var client = new RestClient("https://kgsearch.googleapis.com");
 
-            var request = new RestRequest(string.Format("v1/entities:search?query={0}&key={1}&limit=10&indent=True", name ?? uri, key
-                .ToString()), Method.GET);
+            var queryParameters = HttpUtility.ParseQueryString("");
+
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                queryParameters.Add("query", name.Trim());
+            }
+            if (!string.IsNullOrWhiteSpace(uri))
+            {
+                queryParameters.Add("query", uri.Trim());
+            }
+            queryParameters.Add("key", key.ToString());
+            queryParameters.Add("limit", "10");
+            queryParameters.Add("indent", "true");
+
+            var request = new RestRequest($"v1/entities:search?{queryParameters}");
 
             var response = client.ExecuteTaskAsync<KnowledgeResponse>(request).Result;
 
