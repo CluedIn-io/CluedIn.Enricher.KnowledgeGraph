@@ -12,6 +12,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         public static readonly Guid ProviderId = Core.Constants.ExternalSearchProviders.GoogleKnowledgeGraphId;
         public struct KeyName
         {
+            public const string ApiKey = "apiKey";
             public const string AcceptedEntityType = "acceptedEntityType";
             public const string OrganizationNameKey = "organizationNameKey";
             public const string WebsiteKey = "websiteKey";
@@ -26,9 +27,16 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             {
                 new Control()
                 {
+                    displayName = "Key",
+                    type = "input",
+                    isRequired = true,
+                    name = KeyName.ApiKey
+                },
+                new Control()
+                {
                     displayName = "Accepted Entity Type",
                     type = "input",
-                    isRequired = false,
+                    isRequired = true,
                     name = KeyName.AcceptedEntityType
                 },
                 new Control()

@@ -54,6 +54,16 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExternalSearch.Providers.Kn
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Provider.ExternalSearch.KnowledgeGraph", "src\ExternalSearch.Providers.KnowledgeGraph.Provider\Provider.ExternalSearch.KnowledgeGraph.csproj", "{3127354F-F2CA-4384-956D-2539C01422A9}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{4511AC5F-6A37-4BD7-8CEB-CC8091E73986}"
+	ProjectSection(SolutionItems) = preProject
+		docs\0.1.0-release-notes.md = docs\0.1.0-release-notes.md
+		docs\3.0.0-release-notes.md = docs\3.0.0-release-notes.md
+		docs\3.2.0-release-notes.md = docs\3.2.0-release-notes.md
+		docs\3.3.0-release-notes.md = docs\3.3.0-release-notes.md
+		docs\4.0.0-release-notes.md = docs\4.0.0-release-notes.md
+		docs\4.0.1-release-notes.md = docs\4.0.1-release-notes.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -87,6 +97,7 @@ Global
 		{E4418764-F1EF-40D3-AA8C-C2C6C38B6654} = {DBD1964B-DBD9-4C70-96CA-391C34B3D75F}
 		{AC2E917B-214A-4BB1-8FAB-3116A89AD94C} = {B2A52533-7FBF-41FE-A0AF-874FC54300B2}
 		{3127354F-F2CA-4384-956D-2539C01422A9} = {B2A52533-7FBF-41FE-A0AF-874FC54300B2}
+		{4511AC5F-6A37-4BD7-8CEB-CC8091E73986} = {9BD54E81-D9C8-4419-82B8-8EE6CC7E2647}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6A61CB42-80C5-4A83-AC3E-DA41FC875525}
