@@ -1368,11 +1368,8 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             if (this.IsFiltered(resultItem.Data))
                 yield break;
 
-            var code = this.GetOriginEntityCode(resultItem, request);
-
-            var clue = new Clue(code, context.Organization);
+            var clue = new Clue(request.EntityMetaData.OriginEntityCode, context.Organization);
             clue.Data.OriginProviderDefinitionId = this.Id;
-            clue.Data.EntityData.Codes.Add(request.EntityMetaData.OriginEntityCode);
 
             this.PopulateMetadata(clue.Data.EntityData, resultItem, request);
 
@@ -1426,24 +1423,11 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             return metadata;
         }
 
-        private EntityCode GetOriginEntityCode(IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
-        {
-            return new EntityCode(request.EntityMetaData.EntityType, this.GetCodeOrigin(), request.EntityMetaData.OriginEntityCode.Value);
-        }
-
-        private CodeOrigin GetCodeOrigin()
-        {
-            return CodeOrigin.CluedIn.CreateSpecific("google-knowledgeGraph");
-        }
-
         private void PopulateMetadata(IEntityMetadata metadata, IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
         {
-            var code = this.GetOriginEntityCode(resultItem, request);
-
             metadata.EntityType         = request.EntityMetaData.EntityType;
             metadata.Name               = request.EntityMetaData.Name;
-            metadata.OriginEntityCode   = code;
-            metadata.Codes.Add(code);
+            metadata.OriginEntityCode   = request.EntityMetaData.OriginEntityCode;
 
             metadata.Description        = resultItem.Data.detailedDescription.PrintIfAvailable(v => v.articleBody) ?? resultItem.Data.description;
 
@@ -1458,7 +1442,6 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
                 metadata.Tags.Add(new Tag(tag));
             }
 
-            metadata.Codes.Add(code);
             Uri uri;
 
             if (resultItem.Data.url != null && Uri.TryCreate(resultItem.Data.url, UriKind.Absolute, out uri))
