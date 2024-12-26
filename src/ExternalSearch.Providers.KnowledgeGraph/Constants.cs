@@ -58,23 +58,30 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         {
             Token = new List<Control>()
             {
-                new Control()
+                new()
                 {
                     DisplayName = "Key",
                     Type = "input",
                     IsRequired = true,
                     Name = KeyName.ApiKey,
-                    Help = "The key to authenticate access to the Google's Knowledge Graph API."
+                    Help = "The key to authenticate access to the Google's Knowledge Graph API.",
+                    ValidationRules = new List<Dictionary<string, string>>()
+                    {
+                        new() {
+                            { "regex", "\\s" },
+                            { "message", "Spaces are not allowed" }
+                        }
+                    },
                 },
-                new Control()
+                new()
                 {
                     DisplayName = "Accepted Entity Type",
                     Type = "entityTypeSelector",
                     IsRequired = true,
                     Name = KeyName.AcceptedEntityType,
-                    Help = "The entity type that defines the golden records you want to enrich (e.g., /Organization)."
+                    Help = "The entity type that defines the golden records you want to enrich (e.g., /Organization).",
                 },
-                new Control()
+                new()
                 {
                     DisplayName = "Organization Name Vocabulary Key",
                     Type = "vocabularyKeySelector",
@@ -82,7 +89,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
                     Name = KeyName.OrganizationNameKey,
                     Help = "The vocabulary key that contains the names of companies you want to enrich (e.g., organization.name)."
                 },
-                new Control()
+                new()
                 {
                     DisplayName = "Website Vocabulary Key",
                     Type = "vocabularyKeySelector",
