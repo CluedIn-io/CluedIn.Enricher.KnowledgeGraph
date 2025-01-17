@@ -1455,11 +1455,12 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             try
             {
                 var response = JsonConvert.DeserializeObject<ErrorResponse>(content);
-                return $"{errorMessageBase} {response.Error.Message}";
+
+                return string.IsNullOrWhiteSpace(response?.Error?.Message) ? $"{errorMessageBase} {content}" : $"{errorMessageBase} {response.Error.Message}";
             }
             catch (Exception)
             {
-                return content;
+                return $"{errorMessageBase} {content}";
             }
         }
 
