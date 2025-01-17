@@ -60,8 +60,8 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             {
                 new()
                 {
-                    DisplayName = "Key",
-                    Type = "input",
+                    DisplayName = "API Key",
+                    Type = "password",
                     IsRequired = true,
                     Name = KeyName.ApiKey,
                     Help = "The key to authenticate access to the Google's Knowledge Graph API.",
