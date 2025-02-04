@@ -27,6 +27,7 @@ using EntityType = CluedIn.Core.Data.EntityType;
 using CluedIn.Core.Data.Vocabularies;
 using CluedIn.Core.Connectors;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json;
 
 namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
 {
@@ -1444,9 +1445,23 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             var errorMessage = response.IsSuccessful ? string.Empty
                 : string.IsNullOrWhiteSpace(response.Content) || isHtml
                     ? $"{errorMessageBase} This could be due to breaking changes in the external system."
-                    : $"{errorMessageBase} {response.Content}.";
+                    : ConstructErrorResponse(errorMessageBase, response.Content);
 
             return new ConnectionVerificationResult(response.IsSuccessful, errorMessage);
+        }
+
+        private string ConstructErrorResponse(string errorMessageBase, string content)
+        {
+            try
+            {
+                var response = JsonConvert.DeserializeObject<ErrorResponse>(content);
+
+                return string.IsNullOrWhiteSpace(response?.Error?.Message) ? $"{errorMessageBase} {content}" : $"{errorMessageBase} {response.Error.Message}";
+            }
+            catch (Exception)
+            {
+                return $"{errorMessageBase} {content}";
+            }
         }
 
         private bool IsFiltered(Result result)
