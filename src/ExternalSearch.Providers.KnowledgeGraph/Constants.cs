@@ -19,7 +19,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
                     "type": "list-item",
                     "children": [
                       {
-                        "text": "Add the entity type to specify the golden records you want to enrich. Only golden records belonging to that entity type will be enriched."
+                        "text": "Add the business domain to specify the golden records you want to enrich. Only golden records belonging to that business domain will be enriched."
                       }
                     ]
                   },
@@ -58,23 +58,30 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         {
             Token = new List<Control>()
             {
-                new Control()
+                new()
                 {
-                    DisplayName = "Key",
-                    Type = "input",
+                    DisplayName = "API Key",
+                    Type = "password",
                     IsRequired = true,
                     Name = KeyName.ApiKey,
-                    Help = "The key to authenticate access to the Google's Knowledge Graph API."
+                    Help = "The key to authenticate access to the Google's Knowledge Graph API.",
+                    ValidationRules = new List<Dictionary<string, string>>()
+                    {
+                        new() {
+                            { "regex", "\\s" },
+                            { "message", "Spaces are not allowed" }
+                        }
+                    },
                 },
-                new Control()
+                new()
                 {
-                    DisplayName = "Accepted Entity Type",
+                    DisplayName = "Accepted Business Domain",
                     Type = "entityTypeSelector",
                     IsRequired = true,
                     Name = KeyName.AcceptedEntityType,
-                    Help = "The entity type that defines the golden records you want to enrich (e.g., /Organization)."
+                    Help = "The business domain that defines the golden records you want to enrich (e.g., /Organization).",
                 },
-                new Control()
+                new()
                 {
                     DisplayName = "Organization Name Vocabulary Key",
                     Type = "vocabularyKeySelector",
@@ -82,7 +89,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
                     Name = KeyName.OrganizationNameKey,
                     Help = "The vocabulary key that contains the names of companies you want to enrich (e.g., organization.name)."
                 },
-                new Control()
+                new()
                 {
                     DisplayName = "Website Vocabulary Key",
                     Type = "vocabularyKeySelector",

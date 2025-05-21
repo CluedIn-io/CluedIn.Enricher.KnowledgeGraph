@@ -25,13 +25,16 @@ using CluedIn.Core.ExternalSearch;
 using CluedIn.Core.Providers;
 using EntityType = CluedIn.Core.Data.EntityType;
 using CluedIn.Core.Data.Vocabularies;
+using CluedIn.Core.Connectors;
+using System.Text.RegularExpressions;
+using Newtonsoft.Json;
 
 namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
 {
     /// <summary>The knowledge graph external search provider.</summary>
     /// <seealso cref="CluedIn.ExternalSearch.IExternalSearchResultLogger" />
     /// <seealso cref="CluedIn.ExternalSearch.ExternalSearchProviderBase" />
-    public partial class KnowledgeGraphExternalSearchProvider : ExternalSearchProviderBase, IExternalSearchResultLogger, IExtendedEnricherMetadata, IConfigurableExternalSearchProvider
+    public partial class KnowledgeGraphExternalSearchProvider : ExternalSearchProviderBase, IExternalSearchResultLogger, IExtendedEnricherMetadata, IConfigurableExternalSearchProvider, IExternalSearchProviderWithVerifyConnection
     {
         /**********************************************************************************************************
          * FIELDS
@@ -1368,8 +1371,8 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             if (this.IsFiltered(resultItem.Data))
                 yield break;
 
-            var clue = new Clue(request.EntityMetaData.OriginEntityCode, context.Organization);
-            clue.Data.OriginProviderDefinitionId = this.Id;
+            var code = new EntityCode(request.EntityMetaData.OriginEntityCode.Type, "googleKnowledgeGraph", $"{query.QueryKey}{request.EntityMetaData.OriginEntityCode}".ToDeterministicGuid());
+            var clue = new Clue(code, context.Organization) { Data = { OriginProviderDefinitionId = Id } };
 
             this.PopulateMetadata(clue.Data.EntityData, resultItem, request);
 
@@ -1394,6 +1397,71 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         public IPreviewImage GetPrimaryEntityPreviewImage(ExecutionContext context, IExternalSearchQueryResult result, IExternalSearchRequest request, IDictionary<string, object> config, IProvider provider)
         {
             return null;
+        }
+        
+        public ConnectionVerificationResult VerifyConnection(ExecutionContext context, IReadOnlyDictionary<string, object> config)
+        {
+            var hasKey = config.TryGetValue(Constants.KeyName.ApiKey, out var key);
+            var name = HttpUtility.UrlEncode("Google");
+
+            var client = new RestClient("https://kgsearch.googleapis.com");
+
+            var queryParameters = HttpUtility.ParseQueryString("");
+
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                queryParameters.Add("query", name.Trim());
+            }
+            if (hasKey)
+            {
+                queryParameters.Add("key", key.ToString());
+            }
+            queryParameters.Add("limit", "10");
+            queryParameters.Add("indent", "true");
+
+            var request = new RestRequest($"v1/entities:search?{queryParameters}");
+
+            var response = client.ExecuteAsync<KnowledgeResponse>(request).Result;
+
+            return ConstructVerifyConnectionResponse(response);
+        }
+
+        private ConnectionVerificationResult ConstructVerifyConnectionResponse(IRestResponse response)
+        {
+            var errorMessageBase = $"{Constants.ProviderName} returned \"{(int)response.StatusCode} {response.StatusDescription}\".";
+            if (response.ErrorException != null)
+            {
+                return new ConnectionVerificationResult(false, $"{errorMessageBase} {(!string.IsNullOrWhiteSpace(response.ErrorException.Message) ? response.ErrorException.Message : "This could be due to breaking changes in the external system")}.");
+            }
+
+            if (response.StatusCode is HttpStatusCode.Unauthorized)
+            {
+                return new ConnectionVerificationResult(false, $"{errorMessageBase} This could be due to invalid API key.");
+            }
+
+            var regex = new Regex(@"\<(html|head|body|div|span|img|p\>|a href)", RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.IgnorePatternWhitespace);
+            var isHtml = regex.IsMatch(response.Content);
+
+            var errorMessage = response.IsSuccessful ? string.Empty
+                : string.IsNullOrWhiteSpace(response.Content) || isHtml
+                    ? $"{errorMessageBase} This could be due to breaking changes in the external system."
+                    : ConstructErrorResponse(errorMessageBase, response.Content);
+
+            return new ConnectionVerificationResult(response.IsSuccessful, errorMessage);
+        }
+
+        private string ConstructErrorResponse(string errorMessageBase, string content)
+        {
+            try
+            {
+                var response = JsonConvert.DeserializeObject<ErrorResponse>(content);
+
+                return string.IsNullOrWhiteSpace(response?.Error?.Message) ? $"{errorMessageBase} {content}" : $"{errorMessageBase} {response.Error.Message}";
+            }
+            catch (Exception)
+            {
+                return $"{errorMessageBase} {content}";
+            }
         }
 
         private bool IsFiltered(Result result)
@@ -1425,9 +1493,12 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
 
         private void PopulateMetadata(IEntityMetadata metadata, IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
         {
+            var code = new EntityCode(request.EntityMetaData.OriginEntityCode.Type, "googleKnowledgeGraph", $"{request.Queries.FirstOrDefault()?.QueryKey}{request.EntityMetaData.OriginEntityCode}".ToDeterministicGuid());
+
             metadata.EntityType         = request.EntityMetaData.EntityType;
             metadata.Name               = request.EntityMetaData.Name;
-            metadata.OriginEntityCode   = request.EntityMetaData.OriginEntityCode;
+            metadata.OriginEntityCode   = code;
+            metadata.Codes.Add(request.EntityMetaData.OriginEntityCode);
 
             metadata.Description        = resultItem.Data.detailedDescription.PrintIfAvailable(v => v.articleBody) ?? resultItem.Data.description;
 
