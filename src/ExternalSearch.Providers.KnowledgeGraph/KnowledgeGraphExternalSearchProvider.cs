@@ -1259,11 +1259,13 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
 
             var existingResults = request.GetQueryResults<Result>(this).ToList();
 
-            Func<string, bool> nameFilter = value => OrganizationFilters.NameFilter(context, value) || existingResults.Any(r => string.Equals(r.Data.name, value, StringComparison.InvariantCultureIgnoreCase));
-            Func<string, bool> urlFilter = value =>  existingResults.Any(r => string.Equals(r.Data.url, value, StringComparison.InvariantCultureIgnoreCase));
+            Func<string, bool> nameFilter = value => OrganizationFilters.NameFilter(context, value);
+            Func<string, bool> existingNameFilter = value => existingResults.Any(r => string.Equals(r.Data.name, value, StringComparison.InvariantCultureIgnoreCase));
+            Func<string, bool> existingUrlFilter = value =>  existingResults.Any(r => string.Equals(r.Data.url, value, StringComparison.InvariantCultureIgnoreCase));
 
             // Query Input
             var entityType          = request.EntityMetaData.EntityType;
+            var entityName = !string.IsNullOrEmpty(request.EntityMetaData.Name) ? request.EntityMetaData.Name : request.EntityMetaData.DisplayName;
 
             var configMap        = config.ToDictionary();
             var organizationName = GetValue(request, configMap, Constants.KeyName.OrganizationNameKey, Core.Data.Vocabularies.Vocabularies.CluedInOrganization.OrganizationName);
@@ -1275,24 +1277,40 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             if (!string.IsNullOrEmpty(request.EntityMetaData.DisplayName))
                 organizationName.Add(request.EntityMetaData.DisplayName);
 
-            if (organizationName != null)
+            if (!organizationName.Any())
             {
-                var values = organizationName.Select(NameNormalization.Normalize).Distinct().ToHashSet();
+                throw new Exception($"Unable to generate queries for {entityName}. Name is empty.");
+            }
 
-                foreach (var value in values.Where(v => !nameFilter(v)))
+            var normalizedOrganizationName = organizationName.Select(NameNormalization.Normalize).Distinct().ToHashSet();
+            var filteredOrganizationName = normalizedOrganizationName.Where(v => !nameFilter(v)).ToList();
+
+            if (organizationName.Any() && !filteredOrganizationName.Any() && !website.Any())
+            {
+                throw new Exception($"Unable to generate queries for {entityName}. Organization name is filtered out and website URL is empty.");
+            }
+
+            foreach (var value in filteredOrganizationName)
+            {
+                if (!existingNameFilter(value))
+                {
                     yield return new ExternalSearchQuery(this, entityType, ExternalSearchQueryParameter.Name, value);
+                }
             }
 
             website.AddRange(website.ToList().GetDomainNamesFromUris());
 
-            if (website != null)
-            {
-                // This needs to be full qualified to work e.g. http://www.sitecore.net
-                var values = website.Select(UriUtility.NormalizeHttpUri).Distinct();
+            // This needs to be full qualified to work e.g. http://www.sitecore.net
+            var normalizedDistinctWebsite = website.Select(UriUtility.NormalizeHttpUri).Distinct();
+            var filteredWebsite = normalizedDistinctWebsite.Where(v => !existingUrlFilter(v)).ToList();
 
-                foreach (var value in values.Where(v => !urlFilter(v)))
-                    yield return new ExternalSearchQuery(this, entityType, ExternalSearchQueryParameter.Uri, value);
+            if (website.Any() && !filteredWebsite.Any() && !filteredOrganizationName.Any())
+            {
+                throw new Exception($"Unable to generate queries for {entityName}. Organization Name is either empty or has been filtered out. Website URL is invalid URL and has been filtered out.");
             }
+
+            foreach (var value in filteredWebsite)
+                yield return new ExternalSearchQuery(this, entityType, ExternalSearchQueryParameter.Uri, value);
         }
 
         private static HashSet<string> GetValue(IExternalSearchRequest request, IDictionary<string, object> config, string keyName, VocabularyKey defaultKey)
@@ -1367,9 +1385,12 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         public IEnumerable<Clue> BuildClues(ExecutionContext context, IExternalSearchQuery query, IExternalSearchQueryResult result, IExternalSearchRequest request, IDictionary<string, object> config, IProvider provider)
         {
             var resultItem = result.As<Result>();
+            var entityName = !string.IsNullOrEmpty(request.EntityMetaData.Name) ? request.EntityMetaData.Name : request.EntityMetaData.DisplayName;
 
             if (this.IsFiltered(resultItem.Data))
-                yield break;
+            {
+                throw new Exception($"Unable to build clue for {entityName}. Result is filtered out.");
+            }
 
             var code = new EntityCode(request.EntityMetaData.OriginEntityCode.Type, "googleKnowledgeGraph", $"{query.QueryKey}{request.EntityMetaData.OriginEntityCode}".ToDeterministicGuid());
             var clue = new Clue(code, context.Organization) { Data = { OriginProviderDefinitionId = Id } };
@@ -1382,9 +1403,12 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
         public IEntityMetadata GetPrimaryEntityMetadata(ExecutionContext context, IExternalSearchQueryResult result, IExternalSearchRequest request, IDictionary<string, object> config, IProvider provider)
         {
             var resultItem = result.As<Result>();
+            var entityName = !string.IsNullOrEmpty(request.EntityMetaData.Name) ? request.EntityMetaData.Name : request.EntityMetaData.DisplayName;
 
             if (this.IsFiltered(resultItem.Data))
-                return null;
+            {
+                throw new Exception($"Unable to build clue for {entityName}. Result is filtered out.");
+            }
 
             return this.CreateMetadata(resultItem, request);
         }
