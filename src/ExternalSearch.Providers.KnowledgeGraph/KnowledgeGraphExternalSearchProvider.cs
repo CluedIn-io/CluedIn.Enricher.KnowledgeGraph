@@ -1407,7 +1407,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
 
             if (this.IsFiltered(resultItem.Data))
             {
-                throw new Exception($"Unable to build clue for {entityName}. Result is filtered out.");
+                throw new Exception($"Unable to get metadata for {entityName}. Result is filtered out.");
             }
 
             return this.CreateMetadata(resultItem, request);
