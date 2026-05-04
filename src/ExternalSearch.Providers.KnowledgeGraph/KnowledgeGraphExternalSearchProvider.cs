@@ -1359,7 +1359,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
 
             var request = new RestRequest($"v1/entities:search?{queryParameters}");
 
-            var response = client.ExecuteTaskAsync<KnowledgeResponse>(request).Result;
+            var response = client.ExecuteAsync<KnowledgeResponse>(request).Result;
 
             if (response.StatusCode == HttpStatusCode.OK)
             {
@@ -1450,7 +1450,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             return ConstructVerifyConnectionResponse(response);
         }
 
-        private ConnectionVerificationResult ConstructVerifyConnectionResponse(IRestResponse response)
+        private ConnectionVerificationResult ConstructVerifyConnectionResponse(RestResponse response)
         {
             var errorMessageBase = $"{Constants.ProviderName} returned \"{(int)response.StatusCode} {response.StatusDescription}\".";
             if (response.ErrorException != null)
