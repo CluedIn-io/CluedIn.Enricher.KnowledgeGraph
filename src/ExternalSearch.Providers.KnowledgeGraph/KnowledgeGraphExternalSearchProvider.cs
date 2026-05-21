@@ -1392,7 +1392,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
                 throw new Exception($"Unable to build clue for {entityName}. Result is filtered out.");
             }
 
-            var code = new EntityCode(request.EntityMetaData.OriginEntityCode.Type, "googleKnowledgeGraph", $"{query.QueryKey}{request.EntityMetaData.OriginEntityCode}".ToDeterministicGuid());
+            var code = new EntityCode(request.EntityMetaData.EntityType, "googleKnowledgeGraph", $"{query.QueryKey}{request.EntityMetaData.OriginEntityCode}".ToDeterministicGuid());
             var clue = new Clue(code, context.Organization) { Data = { OriginProviderDefinitionId = Id } };
 
             this.PopulateMetadata(clue.Data.EntityData, resultItem, request);
@@ -1517,7 +1517,8 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
 
         private void PopulateMetadata(IEntityMetadata metadata, IExternalSearchQueryResult<Result> resultItem, IExternalSearchRequest request)
         {
-            var code = new EntityCode(request.EntityMetaData.OriginEntityCode.Type, "googleKnowledgeGraph", $"{request.Queries.FirstOrDefault()?.QueryKey}{request.EntityMetaData.OriginEntityCode}".ToDeterministicGuid());
+            var queryKey = request.Queries.FirstOrDefault(x => x.Id == resultItem.QueryId)?.QueryKey ?? request.Queries.FirstOrDefault()?.QueryKey;
+            var code = new EntityCode(request.EntityMetaData.EntityType, "googleKnowledgeGraph", $"{queryKey}{request.EntityMetaData.OriginEntityCode}".ToDeterministicGuid());
 
             metadata.EntityType         = request.EntityMetaData.EntityType;
             metadata.Name               = request.EntityMetaData.Name;
