@@ -156,7 +156,11 @@ not the globally-installed version): `MajorMinorPatch: "1.0.0"`, confirmed befor
 
 ## Step 8 — Push and confirm CI
 
-Status: *(filled in after pushing)*
+Status: **Done**
+
+**CI fully green on the first push** (PR #47, build 151973): all three `Multi-version build+test`
+legs (4.7.0, 4.8.0, 5.0.0-beta.*) plus `Multi-version: publish` passed. No integration-test legs run
+(no active test project).
 
 ---
 
@@ -169,4 +173,4 @@ Status: *(filled in after pushing)*
 - [x] `NuGet.config` — renamed from `Nuget.config`; feeds confirmed sufficient as-is
 - [x] Source — one RestSharp `IRestResponse`/`RestResponse` guard in `KnowledgeGraphExternalSearchProvider.cs`; both src projects + the integration test project build clean (0 errors) on all three legs
 - [x] `GitVersion.yml` — `next-version: 1.0`; `ignore.commits-before: 2026-06-20T00:00:00`; verified `MajorMinorPatch: 1.0.0` with the pinned GitVersion.Tool 5.9.0
-- [ ] Push branch and confirm the actual Azure DevOps pipeline run is green end-to-end
+- [x] Pushed branch and confirmed the Azure DevOps pipeline is green end-to-end — PR #47, build 151973: all three legs + `Multi-version: publish` passed on the first run
