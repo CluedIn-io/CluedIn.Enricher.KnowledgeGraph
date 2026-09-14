@@ -1360,7 +1360,7 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
             var request = new RestRequest($"v1/entities:search?{queryParameters}");
 
             var response = client.ExecuteAsync(request).Result;
-            var responseData = JsonConvert.DeserializeObject<KnowledgeResponse>(response.Content);
+var responseData = response.StatusCode == HttpStatusCode.OK ? JsonConvert.DeserializeObject<KnowledgeResponse>(response.Content) : null;
 
             if (response.StatusCode == HttpStatusCode.OK)
             {
