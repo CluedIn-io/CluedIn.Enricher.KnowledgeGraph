@@ -1359,13 +1359,14 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
 
             var request = new RestRequest($"v1/entities:search?{queryParameters}");
 
-            var response = client.ExecuteTaskAsync<KnowledgeResponse>(request).Result;
+            var response = client.ExecuteAsync(request).Result;
+            var responseData = response.StatusCode == HttpStatusCode.OK ? JsonConvert.DeserializeObject<KnowledgeResponse>(response.Content) : null;
 
             if (response.StatusCode == HttpStatusCode.OK)
             {
-                if (response.Data.itemListElement != null)
+                if (responseData?.itemListElement != null)
                 {
-                    var elements = response.Data.itemListElement.Where(r => r.result != null && (r.result.id != null || r.result.name != null));
+                    var elements = responseData.itemListElement.Where(r => r.result != null && (r.result.id != null || r.result.name != null));
 
                     foreach (var result in elements)
                     {
@@ -1445,12 +1446,16 @@ namespace CluedIn.ExternalSearch.Providers.KnowledgeGraph
 
             var request = new RestRequest($"v1/entities:search?{queryParameters}");
 
-            var response = client.ExecuteAsync<KnowledgeResponse>(request).Result;
+            var response = client.ExecuteAsync(request).Result;
 
             return ConstructVerifyConnectionResponse(response);
         }
 
+#if CLUEDIN_V50
+        private ConnectionVerificationResult ConstructVerifyConnectionResponse(RestResponse response)
+#else
         private ConnectionVerificationResult ConstructVerifyConnectionResponse(IRestResponse response)
+#endif
         {
             var errorMessageBase = $"{Constants.ProviderName} returned \"{(int)response.StatusCode} {response.StatusDescription}\".";
             if (response.ErrorException != null)
