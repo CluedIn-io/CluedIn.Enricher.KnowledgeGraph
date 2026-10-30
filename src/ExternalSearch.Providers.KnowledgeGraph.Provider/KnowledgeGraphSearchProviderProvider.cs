@@ -134,6 +134,7 @@ namespace CluedIn.Provider.KnowledgeGraph
             { "vocabKeyPrefix", KnowledgeGraphVocabulary.Organization.KeyPrefix},
             { "autoSubmission", false },
             { "dataSourceSetId", string.Empty },
+            { "fieldGroups", Constants.FieldGroups }, // for UI
         };
     }
 }
